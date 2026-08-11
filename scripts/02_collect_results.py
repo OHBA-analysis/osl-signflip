@@ -226,7 +226,7 @@ if __name__ == "__main__":
     ])  # shape: (n_subjects, N_METHODS)
 
     # Save results
-    out_dir = os.path.join(BASE_DIR, f"{dataset}/figures")
+    out_dir = os.path.join(BASE_DIR, f"{dataset}/data")
     os.makedirs(out_dir, exist_ok=True)
 
     save_path = os.path.join(out_dir, "analysis_results.npz")
@@ -262,8 +262,9 @@ if __name__ == "__main__":
     for mi in order:
         s = summary[mi]
         lines.append(
-            f"{METHODS[mi]:<20}{s[0]:>8.4f}{s[1]:>8.4f}{s[2]:>8.4f}{s[3]:>8.4f}{s[4]:>8.4f}\n"
+            f"{METHODS[mi]:<20}{s[0]:>8.4f}{s[1]:>8.4f}{s[2]:>8.4f}{s[3]:>8.4f}{s[4]:>8.4f}"
         )
+    lines.append("")
     lines.append("Paired vs SDP (positive = SDP better), Wilcoxon two-sided:")
     lines.append(f"\t{'baseline':<20}{'meanD':>10}{'medD':>10}{'SDPwin%':>9}{'wilcox_p':>12}")
     for mi, method in enumerate(METHODS):
@@ -271,8 +272,9 @@ if __name__ == "__main__":
             continue
         lines.append(
             f"\t{method:<20}{paired_meanD[mi]:>+10.5f}{paired_medianD[mi]:>+10.5f}"
-            f"{paired_winpct[mi]:>9.1f}{paired_wilcoxp[mi]:>12.2e}\n"
+            f"{paired_winpct[mi]:>9.1f}{paired_wilcoxp[mi]:>12.2e}"
         )
+    lines.append("")
     lines.append("Win-rate matrix (row > col, %):")
     lines += matrix_lines(winrate, ">9.1f", diag_dash=True)
     lines.append("")
