@@ -128,6 +128,11 @@ def cross_parcel_triu(C, n_embeddings):
     return triu & cross
 
 
+def corr(a, b):
+    """Computes Pearson product-moment correlation coefficients."""
+    return np.corrcoef(a, b)[0, 1]
+
+
 # --------------------------------------------------------
 # Statistics (recomputed from the raw per-subject metrics)
 # --------------------------------------------------------

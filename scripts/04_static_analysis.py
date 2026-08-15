@@ -81,11 +81,6 @@ def subject_of(path):
     return os.path.basename(os.path.dirname(path))
 
 
-def corr(a, b):
-    """Computes Pearson product-moment correlation coefficients."""
-    return np.corrcoef(a, b)[0, 1]
-
-
 # STATIC ANALYSIS
 if __name__ == "__main__":
     # Get input arguments
@@ -172,7 +167,7 @@ if __name__ == "__main__":
     tmpl_vec = tde[ti][mask]
     nt_idx = [i for i, s in enumerate(subjects) if s != template]
     nt_subjects = [subjects[i] for i in nt_idx]
-    tde_sim_template = np.array([corr(tde[i][mask], tmpl_vec) for i in nt_idx])
+    tde_sim_template = np.array([ut.corr(tde[i][mask], tmpl_vec) for i in nt_idx])
 
     # Get group-level features
     psd_group = psd.mean(0)
