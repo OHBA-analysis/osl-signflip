@@ -109,6 +109,25 @@ def load_analysis_results(dataset):
     return D, midx
 
 
+# -----------------
+# Post-hoc analysis
+# -----------------
+
+def cross_parcel_triu(C, n_embeddings):
+    """
+    Strict-upper-triangle mask restricted to cross-parcel entries.
+
+    osl-dynamics TDE ordering is channel-major, so embedded dim ``d`` belongs to
+    parcel ``d // n_embeddings``. Within-parcel (auto-covariance) blocks are
+    sign-invariant and excluded to isolate the sign-flip-sensitive structure.
+    """
+    D = C * n_embeddings
+    parcel = np.arange(D) // n_embeddings
+    cross = parcel[:, None] != parcel[None, :]
+    triu = np.triu(np.ones((D, D), dtype=bool), 1)
+    return triu & cross
+
+
 # --------------------------------------------------------
 # Statistics (recomputed from the raw per-subject metrics)
 # --------------------------------------------------------

@@ -95,18 +95,6 @@ def detect_threads():
     return int(v) if v else (os.cpu_count() or 1)
 
 
-def cross_parcel_triu(C, n_embeddings):
-    """
-    Strict-upper-triangle mask over cross-parcel entries of a (D, D) TDE
-    covariance matrix.
-    """
-    D = C * n_embeddings
-    parcel = np.arange(D) // n_embeddings
-    cross = parcel[:, None] != parcel[None, :]
-    triu = np.triu(np.ones((D, D), dtype=bool), 1)
-    return triu & cross
-
-
 def corr(a, b):
     """Computes Pearson product-moment correlation coefficients."""
     a_flat = np.asarray(a).ravel()
@@ -400,7 +388,7 @@ if __name__ == "__main__":
     # across the states. Arrays are shaped (n_stats, n_states); rows follow STAT_NAMES.
 
     # Quantify inter-method similarity of group network features
-    cp_mask = cross_parcel_triu(C, N_EMBEDDINGS)
+    cp_mask = ut.cross_parcel_triu(C, N_EMBEDDINGS)
     tri_c = np.triu_indices(C, 1)
 
     def group_vectors(kind):

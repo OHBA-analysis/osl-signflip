@@ -34,6 +34,7 @@ import pickle
 import matplotlib
 matplotlib.use("Agg")
 import numpy as np
+import utils as ut
 
 from osl_dynamics.analysis import static, power
 from osl_dynamics.data import Data
@@ -78,21 +79,6 @@ def get_template(dataset):
 def subject_of(path):
     """src_{method}/{subject}/{subject}_sflip_lcmv-parc-raw.fif -> subject."""
     return os.path.basename(os.path.dirname(path))
-
-
-def cross_parcel_triu(C, n_embeddings):
-    """
-    Strict-upper-triangle mask restricted to cross-parcel entries.
-
-    osl-dynamics TDE ordering is channel-major, so embedded dim ``d`` belongs to
-    parcel ``d // n_embeddings``. Within-parcel (auto-covariance) blocks are
-    sign-invariant and excluded to isolate the sign-flip-sensitive structure.
-    """
-    D = C * n_embeddings
-    parcel = np.arange(D) // n_embeddings
-    cross = parcel[:, None] != parcel[None, :]
-    triu = np.triu(np.ones((D, D), dtype=bool), 1)
-    return triu & cross
 
 
 def corr(a, b):
@@ -181,7 +167,7 @@ if __name__ == "__main__":
     # so the comparison step can load it alongside each method's after-flip tde_group.
 
     # Compute per-subject similarity of the cross-parcel TDE covariance to the template's
-    mask = cross_parcel_triu(C, N_EMBEDDINGS)
+    mask = ut.cross_parcel_triu(C, N_EMBEDDINGS)
     ti = subjects.index(template)
     tmpl_vec = tde[ti][mask]
     nt_idx = [i for i, s in enumerate(subjects) if s != template]
