@@ -72,11 +72,7 @@ STAT_NAMES = ["fo", "lt", "intv", "sr"]
 
 # Set files for brain parcellations and source space visualizations
 MASK_FILE = "MNI152_T1_8mm_brain.nii.gz"
-PARCELLATION = {
-    "lemon":          "fmri_d100_parcellation_with_PCC_reduced_2mm_ss5mm_ds8mm.nii.gz",  # 38 Giles
-    "wakeman_henson": "fmri_d100_parcellation_with_PCC_reduced_2mm_ss5mm_ds8mm.nii.gz",  # 38 Giles
-    "camcan":         "Glasser52_binary_space-MNI152NLin6_res-8x8x8.nii.gz",             # 52 Glasser
-}
+PARCELLATION_FILE = "fmri_d100_parcellation_with_PCC_reduced_2mm_ss5mm_ds8mm.nii.gz"  # 38 Giles
 
 # Define helper functions
 def parse_args():
@@ -441,8 +437,9 @@ if __name__ == "__main__":
     # Dynamic brain network power and FC maps for SDP sign-flipped data
     try:
         power.save(
-            power_map=feats["sdp"]["gpower"], mask_file=MASK_FILE,
-            parcellation_file=PARCELLATION[dataset],
+            power_map=feats["sdp"]["gpower"],
+            mask_file=MASK_FILE,
+            parcellation_file=PARCELLATION_FILE,
             filename=os.path.join(outdir, "dynamic_power_sdp.png"),
             subtract_mean=True, plot_kwargs={"symmetric_cbar": True},
         )
@@ -454,7 +451,7 @@ if __name__ == "__main__":
         gcoh_rel -= gcoh_rel.mean(0, keepdims=True)  # coherence relative to the state mean
         connectivity.save(
             connectivity_map=gcoh_rel,
-            parcellation_file=PARCELLATION[dataset],
+            parcellation_file=PARCELLATION_FILE,
             threshold=0.97,
             filename=os.path.join(outdir, "dynamic_coh_sdp.png"),
         )
