@@ -22,9 +22,9 @@ import numpy as np
 import utils as ut
 import matplotlib.pyplot as plt  # utils sets the Agg backend on import
 
-# ---------------------------------------------------------------------------
+# ---------------
 # Reusable panels
-# ---------------------------------------------------------------------------
+# ---------------
 
 def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
     """
