@@ -6,11 +6,16 @@ top-level ``figures/`` directory.
 
 # Import packages
 import os
+import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import friedmanchisquare, rankdata, wilcoxon
+
+# Silence per-glyph INFO chatter by fontTools when matplotlib subsets fonts for PDF output
+# (osl-dynamics/osl-ephys raise the root logger to INFO, so these would otherwise print)
+logging.getLogger("fontTools").setLevel(logging.WARNING)
 
 # Set directories
 BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"  # project root
