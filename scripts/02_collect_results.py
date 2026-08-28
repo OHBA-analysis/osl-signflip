@@ -179,10 +179,15 @@ if __name__ == "__main__":
     paired_medianD = np.full(N_METHODS, np.nan)
     paired_winpct = np.full(N_METHODS, np.nan)
     paired_wilcoxp = np.full(N_METHODS, np.nan)
+    paired_nties = np.full(N_METHODS, np.nan)  # exact-zero paired differences (SDP == baseline)
+    paired_effn = np.full(N_METHODS, np.nan)   # effective n the Wilcoxon test uses (zeros dropped)
     for mi, method in enumerate(METHODS):
         if mi == sdp:
             continue
         diff = after[:, sdp] - after[:, mi]
+        nties = int(np.sum(diff == 0))
+        paired_nties[mi] = nties
+        paired_effn[mi] = n_subjects - nties
         paired_meanD[mi] = diff.mean()
         paired_medianD[mi] = np.median(diff)
         paired_winpct[mi] = np.mean(diff > 0) * 100.0
@@ -190,6 +195,10 @@ if __name__ == "__main__":
             paired_wilcoxp[mi] = wilcoxon(after[:, sdp], after[:, mi]).pvalue
         except ValueError:
             paired_wilcoxp[mi] = np.nan
+    # NOTE: scipy.wilcoxon (zero_method="wilcox" by default) drops exact-zero differences,
+    #       so its effective n is n_subjects minus these ties. Record both ties and effective
+    #       n so the p-value can be read against the number of informative (non-tied) pairs
+    #       it was actually computed on.
 
     # Compute win-rate matrix (row > col, %); diagonal is 0 (a > a is never true)
     winrate = (after[:, :, None] > after[:, None, :]).mean(axis=0) * 100.0
@@ -245,6 +254,8 @@ if __name__ == "__main__":
         paired_medianD=paired_medianD,
         paired_winpct=paired_winpct,
         paired_wilcoxp=paired_wilcoxp,
+        paired_nties=paired_nties,
+        paired_effn=paired_effn,
         winrate=winrate,
         agreement=agreement,
         parcel_disagreement=parcel_disagreement,
@@ -265,14 +276,18 @@ if __name__ == "__main__":
             f"{METHODS[mi]:<20}{s[0]:>8.4f}{s[1]:>8.4f}{s[2]:>8.4f}{s[3]:>8.4f}{s[4]:>8.4f}"
         )
     lines.append("")
-    lines.append("Paired vs SDP (positive = SDP better), Wilcoxon two-sided:")
-    lines.append(f"\t{'baseline':<20}{'meanD':>10}{'medD':>10}{'SDPwin%':>9}{'wilcox_p':>12}")
+    lines.append("Paired vs SDP (positive = SDP better), Wilcoxon two-sided")
+    lines.append("\t(nties = tied pairs dropped by wilcoxon; effN = effective n = n - nties):")
+    lines.append(
+        f"\t{'baseline':<20}{'meanD':>10}{'medD':>10}{'SDPwin%':>9}{'nties':>7}{'effN':>7}{'wilcox_p':>12}"
+    )
     for mi, method in enumerate(METHODS):
         if mi == sdp:
             continue
         lines.append(
             f"\t{method:<20}{paired_meanD[mi]:>+10.5f}{paired_medianD[mi]:>+10.5f}"
-            f"{paired_winpct[mi]:>9.1f}{paired_wilcoxp[mi]:>12.2e}"
+            f"{paired_winpct[mi]:>9.1f}{int(paired_nties[mi]):>7d}{int(paired_effn[mi]):>7d}"
+            f"{paired_wilcoxp[mi]:>12.2e}"
         )
     lines.append("")
     lines.append("Win-rate matrix (row > col, %):")
