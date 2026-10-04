@@ -21,7 +21,7 @@ the timing is apples-to-apples with the deployed run.
 Env: ``osle`` (imports sign-flipping algorithms)
 Usage
 -----
-    python 09_benchmark_cost.py <dataset> [--methods <methods>] [--n-subjects N] \
+    python 09_benchmark_cost.py <dataset> [--methods <methods>] [--n-sessions N] \
         [--n-repeats N] [--n-warmup N]
 """
 
@@ -105,9 +105,9 @@ def time_function_call(fn, n_repeats, n_warmup):
 def time_method(method, cov, template_cov, n_embeddings, n_repeats, n_warmup):
     """
     Return {'core': ~ seconds, 'refine': ~ seconds, 'total': ~ seconds} median
-    wallclock for one method and subject.
+    wallclock for one method and session.
 
-    This function measures per-subject, per-method wallclock time (solver core
+    This function measures per-session, per-method wallclock time (solver core
     vs greedy refine).
 
     - ``random`` has no refine stage, so core == total and refine == 0.
@@ -244,13 +244,13 @@ def parse_args():
         help="Subset of methods to benchmark (default: all four).",
     )
     parser.add_argument(
-        "--n-subjects", type=int, default=None,
-        help="Benchmark on the first N subjects only (default: all). Random is slow, so a "
-             "subset (e.g. 20) is usually enough for a stable per-subject median.",
+        "--n-sessions", type=int, default=None,
+        help="Benchmark on the first N sessions only (default: all). Random is slow, so a "
+             "subset (e.g. 20) is usually enough for a stable per-session median.",
     )
     parser.add_argument(
         "--n-repeats", type=int, default=5,
-        help="Timed repeats per (subject, method); the median is reported (default: 5).",
+        help="Timed repeats per (session, method); the median is reported (default: 5).",
     )
     parser.add_argument(
         "--n-warmup", type=int, default=1,
@@ -279,16 +279,16 @@ if __name__ == "__main__":
     if src_dir is None:
         raise FileNotFoundError(f"No src_<method> directory under {BASE_DIR}/{dataset}.")
     parc_files = sorted(glob(os.path.join(src_dir, "*/parc/lcmv-parc-raw.fif")))
-    subject_ids = [f.split("/")[-3] for f in parc_files]
-    print(f"[INFO] Found {len(subject_ids)} subjects in {src_dir}.")
+    session_ids = [f.split("/")[-3] for f in parc_files]
+    print(f"[INFO] Found {len(session_ids)} sessions in {src_dir}.")
 
-    # Define template subject (reusing found subjects)
-    template_subjects = {
+    # Define template session (reusing found sessions)
+    template_sessions = {
         "camcan": "sub-CC110606",
         "lemon": "sub-010295",
         "wakeman_henson": "sub15_run03",
     }
-    template = template_subjects.get(dataset)
+    template = template_sessions.get(dataset)
     if template is None:
         raise ValueError(f"No template defined for '{dataset}' dataset.")
     print(f"[INFO] Template: {template}")
@@ -301,42 +301,42 @@ if __name__ == "__main__":
         standardize=COMMON_PARAMS["standardize"],
         use_tqdm=True,
     )
-    template_cov = covs[subject_ids.index(template)]
+    template_cov = covs[session_ids.index(template)]
     n_parcels = covs.shape[1] // E
     print(f"[INFO] Covariance matrix dimension D = {covs.shape[1]} " +
           f"(n = {n_parcels} parcels, E = {E} embeddings)")
 
-    # Get subjects to evaluate (excluding the template)
-    eval_idx = [i for i in range(len(subject_ids)) if subject_ids[i] != template]
-    if args.n_subjects is not None:
-        eval_idx = eval_idx[:args.n_subjects]
-    print(f"[INFO] Timing {len(eval_idx)} subjects x {len(args.methods)} methods ...")
+    # Get sessions to evaluate (excluding the template)
+    eval_idx = [i for i in range(len(session_ids)) if session_ids[i] != template]
+    if args.n_sessions is not None:
+        eval_idx = eval_idx[:args.n_sessions]
+    print(f"[INFO] Timing {len(eval_idx)} sessions x {len(args.methods)} methods ...")
 
-    # Measure per-method, per-subject wallclock times
-    times = {m: [] for m in args.methods}  # list over subjects of {'core','refine','total'}
+    # Measure per-method, per-session wallclock times
+    times = {m: [] for m in args.methods}  # list over sessions of {'core','refine','total'}
     for c, i in enumerate(eval_idx, 1):
         for m in args.methods:
             rec = time_method(m, covs[i], template_cov, E, args.n_repeats, args.n_warmup)
             times[m].append(rec)
         if c % 10 == 0 or c == len(eval_idx):
-            print(f"\t[{c:3d}/{len(eval_idx)}] {subject_ids[i]}")
+            print(f"\t[{c:3d}/{len(eval_idx)}] {session_ids[i]}")
 
     # Aggregate wallclock time measurements
     stages = ["core", "refine", "total"]
     agg = {m: {st: np.array([r[st] for r in times[m]]) for st in stages} for m in args.methods}
 
-    # Compute and report median-over-subjects of the per-subject median wallclock times
+    # Compute and report median-over-sessions of the per-session median wallclock times
     print("\n" + "=" * 84)
     print(f"COST BENCHMARK  ({dataset}: n = {n_parcels}, E = {E}, D = {n_parcels * E}; "
-          f"{len(eval_idx)} subjects)")
+          f"{len(eval_idx)} sessions)")
     print("=" * 84)
-    print(f"\nWallclock per subject, median [IQR] in ms  (serial, single-threaded):")
+    print(f"\nWallclock per session, median [IQR] in ms  (serial, single-threaded):")
     print(f"\t{'method':<20}{'core (ms)':>18}{'refine (ms)':>18}{'total (ms)':>18}")
     for m in args.methods:
         cells = ""
         for st in stages:
             x = agg[m][st] * 1e3
-            median = np.median(x)  # median over subjects
+            median = np.median(x)  # median over sessions
             iqr = np.subtract(*np.percentile(x, [75, 25]))
             cells += f"{median:10.2f} [{iqr:5.2f}]".rjust(18)
         print(f"\t{m:<20}{cells}")
@@ -359,12 +359,12 @@ if __name__ == "__main__":
         print(f"\t{m:<20}{f['core']:14.3e}{f['refine']:14.3e}{f['total']:14.3e}")
 
     # Save result outputs
-    # (includes per-subject raw timings + the aggregate + FLOP model)
+    # (includes per-session raw timings + the aggregate + FLOP model)
     out_dir = os.path.join(BASE_DIR, dataset, "data")
     os.makedirs(out_dir, exist_ok=True)
     out = os.path.join(out_dir, "benchmark_cost.npz")
     save = {
-        "subjects": np.array([subject_ids[i] for i in eval_idx]),
+        "sessions": np.array([session_ids[i] for i in eval_idx]),
         "n_parcels": n_parcels, "n_embeddings": E, "template": template,
     }
     for m in args.methods:

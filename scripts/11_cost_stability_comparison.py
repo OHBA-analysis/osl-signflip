@@ -4,7 +4,7 @@ Reads the per-dataset ``benchmark_cost.npz`` (from ``09_benchmark_cost.py``) and
 ``seed_stability.npz`` (from ``10_seed_stability.py``) for every dataset and writes
 into the top-level ``figures/``:
 
-    * ``fig2_cost``            -- per-subject wall-clock and analytic FLOPs per method,
+    * ``fig2_cost``            -- per-session wall-clock and analytic FLOPs per method,
                                   with the geometric-mean speed-up vs random annotated.
     * ``figS8_seed_stability`` -- run-to-run spread of the after-flip metric across RNG
                                   seeds for the randomized methods (i.e., random, SDP).
@@ -78,7 +78,7 @@ def fig2_cost(bench, avail):
 
     # Plot figures
     fig, axes = plt.subplots(1, 2, figsize=(9, 4.2))
-    _cost_panel(axes[0], bench, avail, wall, "Median per-subject time (ms)",
+    _cost_panel(axes[0], bench, avail, wall, "Median per-session time (ms)",
                 annotate_speedup=True)
     axes[0].set_title("Wall-clock (measured; single-threaded)")
     _cost_panel(axes[1], bench, avail, flops, "Analytic FLOPs (total)")
@@ -98,7 +98,7 @@ def fig2_cost(bench, avail):
 
 
 def figS8_seed_stability(seed, avail, rng):
-    """Figure S8: Per-subject spread of the after-flip metric across RNG seeds."""
+    """Figure S8: Per-session spread of the after-flip metric across RNG seeds."""
     # Set parameters
     methods = ["random", "sdp"]  # seed-dependent methods only
     floor = 1e-7                 # makes exact-zero SDP spreads visible on a log axis

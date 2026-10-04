@@ -1,9 +1,9 @@
 """Accumulate sign-flipping results and compute comparison statistics.
 
-Reads the per-subject results produced by ``01_sign_flip.py``:
+Reads the per-session results produced by ``01_sign_flip.py``:
 
 * the before/after covariance-correlation metric from
-  ``{dataset}/src_{method}/src_report/{subject}/data.pkl``
+  ``{dataset}/src_{method}/src_report/{session}/data.pkl``
   (``metrics[0]`` = before flip; ``metrics[-1]`` = the metric of the *actually
   applied* flips -- note this is NOT ``metrics.max()``, which for belief
   propagation is a transient mid-trajectory peak the solver moved past);
@@ -50,7 +50,7 @@ def parse_args():
 def load_metrics(dataset, method):
     """
     Returns metrics before and after applying a sign-flipping algorithm
-    for each subject and method.
+    for each session and method.
         - ``before`` = unflipped metric (``metrics[0]``)
         - ``after`` = metric of the applied flips (``metrics[-1]``)
     """
@@ -60,11 +60,11 @@ def load_metrics(dataset, method):
     )
     template = None
     for f in sorted(glob.glob(pattern)):
-        subject = f.split("/")[-2]
+        session = f.split("/")[-2]
         with open(f, "rb") as fh:
             data = pickle.load(fh)
         m = np.asarray(data["metrics"], dtype=float).ravel()
-        out[subject] = (m[0], m[-1])
+        out[session] = (m[0], m[-1])
         template = data.get("template", template)
     return out, template
 
@@ -79,7 +79,7 @@ def _pick_parcels(raw):
     return parc if parc else "misc"
 
 
-def recover_flips(dataset, method, subject):
+def recover_flips(dataset, method, session):
     """
     Recovers the applied ±1 per-parcel flip vector from the saved files.
 
@@ -87,12 +87,12 @@ def recover_flips(dataset, method, subject):
     inner product over time recovers ``f_p``.
     """
     # Load data time series
-    src_dir = os.path.join(BASE_DIR, f"{dataset}/src_{method}/{subject}")
+    src_dir = os.path.join(BASE_DIR, f"{dataset}/src_{method}/{session}")
     orig_ts = mne.io.read_raw_fif(
         os.path.join(src_dir, "parc/lcmv-parc-raw.fif"),
     )
     sflip_ts = mne.io.read_raw_fif(
-        os.path.join(src_dir, f"{subject}_sflip_lcmv-parc-raw.fif"),
+        os.path.join(src_dir, f"{session}_sflip_lcmv-parc-raw.fif"),
     )
 
     # Select the time window to analyze
@@ -135,35 +135,35 @@ if __name__ == "__main__":
     for method in METHODS:
         metrics[method], tmpl = load_metrics(dataset, method)
         template = tmpl or template
-    print(f"[INFO] Template subject/session: {template}")
-    # NOTE: The template subject/session should be identical for all methods given
+    print(f"[INFO] Template session: {template}")
+    # NOTE: The template session should be identical for all methods given
     #       the same dataset.
 
-    # Confirm common subjects across all four methods, excluding the template
-    subjects = sorted(set.intersection(*[set(metrics[m]) for m in METHODS]))
-    subjects = [s for s in subjects if s != template]
-    n_subjects = len(subjects)
-    print(f"[INFO] Common subjects (template excluded): {n_subjects}")
+    # Confirm common sessions across all four methods, excluding the template
+    sessions = sorted(set.intersection(*[set(metrics[m]) for m in METHODS]))
+    sessions = [s for s in sessions if s != template]
+    n_sessions = len(sessions)
+    print(f"[INFO] Common sessions (template excluded): {n_sessions}")
 
     # Get metrics (i.e., correlation between covariance matrices)
-    before = np.array([metrics["sdp"][s][0] for s in subjects])  # same across all methods
+    before = np.array([metrics["sdp"][s][0] for s in sessions])  # same across all methods
     after = np.column_stack(
-        [[metrics[m][s][1] for s in subjects] for m in METHODS]
-    )  # after.shape: (n_subjects, N_METHODS)
+        [[metrics[m][s][1] for s in sessions] for m in METHODS]
+    )  # after.shape: (n_sessions, N_METHODS)
 
     for m in METHODS:
-        before_m = np.array([metrics[m][s][0] for s in subjects])
+        before_m = np.array([metrics[m][s][0] for s in sessions])
         max_dev = np.max(np.abs(before_m - before))
         assert max_dev < 1e-6, f"before-flip metric differs for {m}: max deviation = {max_dev:.2e}"
 
-    # Recover the applied flip decisions for every subject and method
+    # Recover the applied flip decisions for every session and method
     print("[INFO] Recovering flip vectors from saved parcel time courses ...")
     flips = None
     for mi, method in enumerate(METHODS):
-        for si, subject in enumerate(subjects):
-            f = recover_flips(dataset, method, subject)
+        for si, session in enumerate(sessions):
+            f = recover_flips(dataset, method, session)
             if flips is None:
-                flips = np.zeros((N_METHODS, n_subjects, f.shape[0]), dtype=np.int8)
+                flips = np.zeros((N_METHODS, n_sessions, f.shape[0]), dtype=np.int8)
             flips[mi, si] = f
         print(f"\t{method}: done")
     n_parcels = flips.shape[-1]
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         diff = after[:, sdp] - after[:, mi]
         nties = int(np.sum(diff == 0))
         paired_nties[mi] = nties
-        paired_effn[mi] = n_subjects - nties
+        paired_effn[mi] = n_sessions - nties
         paired_meanD[mi] = diff.mean()
         paired_medianD[mi] = np.median(diff)
         paired_winpct[mi] = np.mean(diff > 0) * 100.0
@@ -196,21 +196,21 @@ if __name__ == "__main__":
         except ValueError:
             paired_wilcoxp[mi] = np.nan
     # NOTE: scipy.wilcoxon (zero_method="wilcox" by default) drops exact-zero differences,
-    #       so its effective n is n_subjects minus these ties. Record both ties and effective
+    #       so its effective n is n_sessions minus these ties. Record both ties and effective
     #       n so the p-value can be read against the number of informative (non-tied) pairs
     #       it was actually computed on.
 
     # Compute win-rate matrix (row > col, %); diagonal is 0 (a > a is never true)
     winrate = (after[:, :, None] > after[:, None, :]).mean(axis=0) * 100.0
 
-    # Compute pairwise agreement matrix (up to global sign), averaged over subjects
+    # Compute pairwise agreement matrix (up to global sign), averaged over sessions
     same = (flips[:, None] == flips[None, :]).mean(axis=-1)
-    # shape: (N_METHODS, N_METHODS, n_subjects)
+    # shape: (N_METHODS, N_METHODS, n_sessions)
     agreement = np.maximum(same, 1.0 - same).mean(axis=-1)
 
-    # Gauge-align each subject's flip vectors to SDP
+    # Gauge-align each session's flip vectors to SDP
     aligned = flips.copy().astype(np.int8)
-    for s in range(n_subjects):
+    for s in range(n_sessions):
         ref = flips[sdp, s]
         for mi in range(N_METHODS):
             if mi == sdp:
@@ -219,11 +219,11 @@ if __name__ == "__main__":
                 aligned[mi, s] = -aligned[mi, s]
 
     # Compute majority-vote consensus
-    consensus = np.sign(aligned.sum(axis=0))  # (n_subjects, n_parcels); ties -> 0
+    consensus = np.sign(aligned.sum(axis=0))  # (n_sessions, n_parcels); ties -> 0
     consensus[consensus == 0] = 1
     consensus = consensus.astype(np.int8)
 
-    # Compute per-parcel disagreement rate (fraction of subjects where the four
+    # Compute per-parcel disagreement rate (fraction of sessions where the four
     # methods are not unanimous on that parcel)
     parcel_disagreement = np.mean(
         (aligned != aligned[0:1]).any(axis=0), axis=0
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     # Compute per-method consensus agreement (fraction of parcels matching the consensus)
     consensus_agreement = np.column_stack([
         np.mean(aligned[mi] == consensus, axis=1) for mi in range(N_METHODS)
-    ])  # shape: (n_subjects, N_METHODS)
+    ])  # shape: (n_sessions, N_METHODS)
 
     # Save results
     out_dir = os.path.join(BASE_DIR, f"{dataset}/data")
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         save_path,
         dataset=dataset,
         methods=np.array(METHODS),
-        subjects=np.array(subjects),
+        sessions=np.array(sessions),
         template=template,
         n_parcels=n_parcels,
         before=before,
@@ -266,10 +266,10 @@ if __name__ == "__main__":
     # Print and save human-readable summary
     lines = []
     lines.append(f"Sign-flipping method comparison -- {dataset}")
-    lines.append(f"n = {n_subjects} subjects (template {template} excluded), {n_parcels} parcels")
+    lines.append(f"n = {n_sessions} sessions (template {template} excluded), {n_parcels} parcels")
     lines.append(f"before-flip metric: mean {before.mean():.4f} | median {np.median(before):.4f}\n")
     lines.append(f"{'method':<20}{'mean':>8}{'median':>8}{'std':>8}{'min':>8}{'max':>8}")
-    order = np.argsort(-summary[:, 0])  # sort methods by mean after-flip correlation across subjects
+    order = np.argsort(-summary[:, 0])  # sort methods by mean after-flip correlation across sessions
     for mi in order:
         s = summary[mi]
         lines.append(
@@ -293,10 +293,10 @@ if __name__ == "__main__":
     lines.append("Win-rate matrix (row > col, %):")
     lines += matrix_lines(winrate, ">9.1f", diag_dash=True)
     lines.append("")
-    lines.append("Flip-decision agreement matrix (up to global sign, mean over subjects):")
+    lines.append("Flip-decision agreement matrix (up to global sign, mean over sessions):")
     lines += matrix_lines(agreement, ">9.3f")
     lines.append("")
-    lines.append("Per-method agreement with the 4-method consensus (mean over subjects):")
+    lines.append("Per-method agreement with the 4-method consensus (mean over sessions):")
     for mi, method in enumerate(METHODS):
         lines.append(f"\t{method:<20}{consensus_agreement[:, mi].mean():>8.3f}")
     text = "\n".join(lines)

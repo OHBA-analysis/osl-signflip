@@ -4,7 +4,7 @@ Reads the per-dataset dynamic features saved by ``07_dynamic_features.py``
 (``dynamic_results.npz`` + ``dynamic_features.npz``) and writes into the top-level
 ``figures/``:
 
-    * ``fig5_dynamics``              -- Cam-CAN: Dice between state time courses, per-subject Dice
+    * ``fig5_dynamics``              -- Cam-CAN: Dice between state time courses, per-session Dice
                                         with SDP, inter-method state TDE-covariance similarity, and
                                         per-state summary statistics (fractional occupancy / lifetime
                                         / switching rate) across methods.
@@ -151,15 +151,15 @@ def draw_matrix(
         cbar.set_label(cbar_label, fontsize=7)
 
 
-def draw_box(ax, per_subj, midx, ylabel, title, rng):
+def draw_box(ax, per_sess, midx, ylabel, title, rng):
     """
-    Per-subject metric values against SDP for each method
+    Per-session metric values against SDP for each method
     (draws box plots with jitter).
     """
     baselines = [m for m in ut.DISPLAY if m != "sdp"]
-    n = per_subj.shape[0]  # number of subjects
+    n = per_sess.shape[0]  # number of sessions
     for i, m in enumerate(baselines):
-        x = per_subj[:, midx[m]]
+        x = per_sess[:, midx[m]]
         bp = ax.boxplot(x, positions=[i], widths=0.6, patch_artist=True,
                         showfliers=False, zorder=2, medianprops=dict(color="black", lw=1.2))
         bp["boxes"][0].set(facecolor=ut.COLORS[m], alpha=0.45, edgecolor="0.3", lw=0.8)
@@ -201,14 +201,14 @@ def fig5_dynamics(R, rng):
     """
     Figure 5: Preservation of dynamics across sign-flipping methods.
 
-    Uses all subjects (including template), and states are matched to SDP.
+    Uses all sessions (including template), and states are matched to SDP.
     """
     midx, feats = R["midx"], R["feats"]
     fig, axes = plt.subplots(2, 3, figsize=(9.5, 7.2))
     draw_matrix(axes[0, 0], R["dice"], midx, "Dice Overlap between State Time Courses",
                 cbar_label="Dice coefficient")
-    draw_box(axes[0, 1], R["dice_subj"], midx, "Dice coefficient",
-             "Per-subject Dice with SDP", rng)
+    draw_box(axes[0, 1], R["dice_sess"], midx, "Dice coefficient",
+             "Per-session Dice with SDP", rng)
     draw_matrix(axes[0, 2], R["sim_tde_cov"], midx, "Similarity in State-wise TDE Covariance",
                 cbar_tick_spacing=0.05, cbar_label="Pearson correlation")
     draw_grouped_bars(axes[1, 0], feats, "fo", "Fractional occupancy")

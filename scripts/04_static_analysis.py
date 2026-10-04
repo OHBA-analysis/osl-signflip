@@ -1,6 +1,6 @@
 """Extract static features for specified sign-flipping method.
 
-Computes per-subject and group-level static features from the sign-flipped
+Computes per-session and group-level static features from the sign-flipped
 parcel data and saves them for cross-method comparison (``05_static_comparison.py``
 aggregates all four methods).
 
@@ -17,8 +17,8 @@ Two kinds of feature:
   construction; the sign-sensitive structure lives at nonzero lag. We therefore
   use the time-delay-embedded covariance (``n_embeddings = 15`` -> D = 15 * C).
   Cross-parcel covariance blocks flip sign with the flips (within-parcel
-  auto-covariance blocks are invariant), so each subject is scored by the similarity
-  of its cross-parcel TDE covariance to the template subject's.
+  auto-covariance blocks are invariant), so each session is scored by the similarity
+  of its cross-parcel TDE covariance to the template session's.
 
 Env: ``osld`` (to use osl-dynamics package)
 Usage:
@@ -64,7 +64,7 @@ def parse_args():
 
 
 def get_template(dataset):
-    """Reads the template subject (auto-selected by 01_sign_flip.py) from a data.pkl."""
+    """Reads the template session (auto-selected by 01_sign_flip.py) from a data.pkl."""
     pattern = os.path.join(
         BASE_DIR, dataset, "src_sdp/src_report/*/data.pkl"
     )  # use `src_sdp` as a representative directory
@@ -76,8 +76,8 @@ def get_template(dataset):
     return None
 
 
-def subject_of(path):
-    """src_{method}/{subject}/{subject}_sflip_lcmv-parc-raw.fif -> subject."""
+def session_of(path):
+    """src_{method}/{session}/{session}_sflip_lcmv-parc-raw.fif -> session."""
     return os.path.basename(os.path.dirname(path))
 
 
@@ -90,19 +90,19 @@ if __name__ == "__main__":
     n_jobs = args.n_workers
     print(f"[INFO] Dataset: {dataset} | Sign flipping method: {method}")
 
-    # Get template subject/session
+    # Get template session
     template = get_template(dataset)
-    print(f"[INFO] Template subject: {template}")
+    print(f"[INFO] Template session: {template}")
 
-    # Get data file paths (aligned by subject order; template kept as TDE reference)
+    # Get data file paths (aligned by session order; template kept as TDE reference)
     src_dir = os.path.join(BASE_DIR, dataset, f"src_{method}")
-    files = {subject_of(f): f for f in sorted(
+    files = {session_of(f): f for f in sorted(
         glob.glob(os.path.join(src_dir, "*", f"*_sflip_lcmv-parc-raw.fif"))
     )}
-    subjects = sorted(files)
-    assert template in subjects, "template subject missing from sflip files"
-    flist = [files[s] for s in subjects]
-    print(f"[INFO] Number of available subjects: {len(subjects)} (incl. template)")
+    sessions = sorted(files)
+    assert template in sessions, "template session missing from sflip files"
+    flist = [files[s] for s in sessions]
+    print(f"[INFO] Number of available sessions: {len(sessions)} (incl. template)")
 
     # Load data
     data = Data(
@@ -110,21 +110,21 @@ if __name__ == "__main__":
         sampling_frequency=FS, n_jobs=n_jobs,
     )
     ts = data.time_series()  # raw time series
-    # shape: list of (n_samples, n_channels); aligned to `subjects`
+    # shape: list of (n_samples, n_channels); aligned to `sessions`
     C = ts[0].shape[1]  # number of channels
 
     # Compute sign-invariant features from raw time series (for quality control)
     f, psd = static.welch_spectra(
         data=ts, sampling_frequency=FS, window_length=WELCH_WINDOW,
         standardize=True, n_jobs=n_jobs,
-    )  # psd.shape: (n_subjects, C, n_freqs)
-    pwr = power.variance_from_spectra(f, psd) # pwr.shape: (n_subjects, C)
+    )  # psd.shape: (n_sessions, C, n_freqs)
+    pwr = power.variance_from_spectra(f, psd) # pwr.shape: (n_sessions, C)
 
     # Compute TDE covariance (sign-sensitive)
     data.prepare({"tde": {"n_embeddings": N_EMBEDDINGS}, "standardize": {}})
     tde = static.functional_connectivity(
         data.time_series(), conn_type="cov", n_jobs=n_jobs
-    )  # tde.shape: (n_subjects, D, D), where D = C * N_EMBEDDINGS
+    )  # tde.shape: (n_sessions, D, D), where D = C * N_EMBEDDINGS
     del data
 
     # Compute AEC from a freshly reloaded raw object
@@ -138,12 +138,12 @@ if __name__ == "__main__":
         "standardize": {},
     })
     aec = static.functional_connectivity(aec_data.time_series(), n_jobs=n_jobs)
-    # aec.shape: (n_subjects, C, C)
+    # aec.shape: (n_sessions, C, C)
     del aec_data
 
     # Compute before-flip group TDE covariance (method-independent)
     before_files = [
-        os.path.join(src_dir, s, "parc/lcmv-parc-raw.fif") for s in subjects
+        os.path.join(src_dir, s, "parc/lcmv-parc-raw.fif") for s in sessions
     ]
     before_data = Data(
         before_files, picks="misc", reject_by_annotation="omit",
@@ -156,17 +156,17 @@ if __name__ == "__main__":
     del before_data
 
     # NOTE: The pre-flip parcel data (parc/lcmv-parc-raw.fif) are identical across methods;
-    # averaging their TDE covariance across subjects -- each with an arbitrary per-parcel
+    # averaging their TDE covariance across sessions -- each with an arbitrary per-parcel
     # sign -- gives the unresolved "before" group covariance that sign flipping aligns.
     # Computed here (once per method run; the result should be the same for every method)
     # so the comparison step can load it alongside each method's after-flip tde_group.
 
-    # Compute per-subject similarity of the cross-parcel TDE covariance to the template's
+    # Compute per-session similarity of the cross-parcel TDE covariance to the template's
     mask = ut.cross_parcel_triu(C, N_EMBEDDINGS)
-    ti = subjects.index(template)
+    ti = sessions.index(template)
     tmpl_vec = tde[ti][mask]
-    nt_idx = [i for i, s in enumerate(subjects) if s != template]
-    nt_subjects = [subjects[i] for i in nt_idx]
+    nt_idx = [i for i, s in enumerate(sessions) if s != template]
+    nt_sessions = [sessions[i] for i in nt_idx]
     tde_sim_template = np.array([ut.corr(tde[i][mask], tmpl_vec) for i in nt_idx])
 
     # Get group-level features
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     aec_group = aec.mean(0)
     tde_group = tde.mean(0)
 
-    # Save per-subject features (non-template) and group means
+    # Save per-session features (non-template) and group means
     outdir = os.path.join(BASE_DIR, dataset, "data")
     os.makedirs(outdir, exist_ok=True)
     out_npz = os.path.join(outdir, f"static_{method}.npz")
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         out_npz,
         dataset=dataset,
         method=method,
-        subjects=np.array(nt_subjects),
+        sessions=np.array(nt_sessions),
         template=template,
         n_parcels=C,
         n_embeddings=N_EMBEDDINGS,
@@ -197,9 +197,9 @@ if __name__ == "__main__":
         tde_group=tde_group,                      # (D, D) after-flip group TDE cov
         tde_group_before=tde_group_before,        # (D, D) before-flip group TDE cov
         tde_sim_template=tde_sim_template,        # (nt,)
-    )  # nt: number of non-template subjects
+    )  # nt: number of non-template sessions
     print(f"[INFO] Saved features to {out_npz}")
 
     print(f"[INFO] TDE similarity to template: mean {tde_sim_template.mean():.4f} "
-          f"+/- {tde_sim_template.std():.4f} (n = {len(nt_subjects)})")
+          f"+/- {tde_sim_template.std():.4f} (n = {len(nt_sessions)})")
     print("[INFO] Done.")

@@ -5,7 +5,7 @@ best HMM run per method, matches the arbitrary HMM state order across methods to
 SDP, and computes every feature required for the visualization step.
 
 For a given dataset, the four methods are trained on the same recordings that
-differ only by the per-parcel sign flips, so subjects and time points are aligned
+differ only by the per-parcel sign flips, so sessions and time points are aligned
 across methods. Therefore, any difference in the inferred dynamics is attributable
 to the sign-flipping method.
 
@@ -13,13 +13,13 @@ Writes into ``<dataset>/data/``:
 
 * ``dynamic_features.npz`` -- per-method group features: state PSD/power/coherence
   (``gpsd``/``gpower``/``gcoh``), the sign-sensitive state TDE covariance
-  (``tde_cov``), the per-subject/per-state summary statistics (``fo``/``lt``/
+  (``tde_cov``), the per-session/per-state summary statistics (``fo``/``lt``/
   ``intv``/``sr``), and the hard state-label sequences (``labels``). Multitaper +
   state-covariance general matrix multiply (GEMM) is heavy to build -> cached and
   reused on re-runs.
 
 * ``dynamic_results.npz`` -- figure-ready arrays: state-segmentation agreement and
-  Dice (4x4 and per-subject vs SDP), inter-method similarity of every group network
+  Dice (4x4 and per-session vs SDP), inter-method similarity of every group network
   feature, the state-matched observation-model covariances and transition matrices,
   the per-state Friedman omnibus for each summary statistic (``friedman_chi2``/``_p``,
   shape (n_stats, n_states), Holm-corrected across states as ``friedman_p_holm``), best
@@ -67,7 +67,7 @@ TIME_HALF_BANDWIDTH = 4  # time-half bandwidth for multitaper
 N_TAPERS = 7             # number of multitaper tapers
 POWER_BAND = [1, 20]     # band to integrate for power maps
 COH_BAND = [1, 20]       # band to average for coherence maps
-MT_BATCH = 32            # subjects per multitaper batch (bounds memory on large datasets)
+MT_BATCH = 32            # sessions per multitaper batch (bounds memory on large datasets)
 STAT_NAMES = ["fo", "lt", "intv", "sr"]
 
 # Set files for brain parcellations and source space visualizations
@@ -98,8 +98,8 @@ def corr(a, b):
     return np.corrcoef(a_flat, b_flat)[0, 1]
 
 
-def subject_of(path):
-    """src_{method}/{subject}/{subject}_sflip_lcmv-parc-raw.fif -> subject."""
+def session_of(path):
+    """src_{method}/{session}/{session}_sflip_lcmv-parc-raw.fif -> session."""
     return os.path.basename(os.path.dirname(path))
 
 
@@ -135,7 +135,7 @@ def load_run_results(dataset, method, run_id):
 
 def align(ts, alpha):
     """
-    Truncates raw time series and alpha time courses of each subject
+    Truncates raw time series and alpha time courses of each session
     to a common length (from the start).
     """
     ts_cropped, alpha_cropped = [], []
@@ -168,7 +168,7 @@ def group_multitaper(ts, alpha, n_jobs):
             psd_sum += psd_b
             coh_sum += coh_b
         total += w.sum()
-        print(f"\tmultitaper: {min(s + MT_BATCH, len(ts))}/{len(ts)} subjects")
+        print(f"\tmultitaper: {min(s + MT_BATCH, len(ts))}/{len(ts)} sessions")
     return f, psd_sum / total, coh_sum / total
 
 
@@ -200,7 +200,7 @@ def group_state_cov(raw, alpha, n_states, E, n_threads=None):
             acc += g.reshape(D, n_states, D).transpose(1, 0, 2).astype(np.float64)
             wsum += aa.sum(0, dtype=np.float64)
             if (i + 1) % 50 == 0 or i + 1 == len(raw):
-                print(f"\tstate cov: {i + 1}/{len(raw)} subjects")
+                print(f"\tstate cov: {i + 1}/{len(raw)} sessions")
     finally:
         if limiter is not None:
             limiter.unregister()
@@ -209,7 +209,7 @@ def group_state_cov(raw, alpha, n_states, E, n_threads=None):
 
 def compute_label_agreement(la, lb):
     """
-    Computes per-subject fraction of time points with the same (matched)
+    Computes per-session fraction of time points with the same (matched)
     hard state.
 
     Every time point counts once, so states that are "on" for a lot of the recording
@@ -224,7 +224,7 @@ def compute_label_agreement(la, lb):
 
 def compute_label_dice(la, lb, n_states):
     """
-    Computes per-subject Dice coefficient between two hard state sequences,
+    Computes per-session Dice coefficient between two hard state sequences,
     averaged over states.
 
     Each state gets its own overlap score, and then all states are averaged equally.
@@ -267,13 +267,13 @@ if __name__ == "__main__":
     for m in METHODS:
         print(f"\t{m:<20} -> run{best_run[m]}")
 
-    # Align subjects across sign-flipping methods (same sorted subjects)
+    # Align sessions across sign-flipping methods (same sorted sessions)
     files = {m: sflip_files(dataset, m) for m in METHODS}
-    subjects = [subject_of(f) for f in files["sdp"]]
+    sessions = [session_of(f) for f in files["sdp"]]
     for m in METHODS:
-        assert [subject_of(f) for f in files[m]] == subjects, f"subject mismatch for {m}"
-    n_subjects = len(subjects)
-    print(f"[INFO] {n_subjects} subjects, {N_STATES} states")
+        assert [session_of(f) for f in files[m]] == sessions, f"session mismatch for {m}"
+    n_sessions = len(sessions)
+    print(f"[INFO] {n_sessions} sessions, {N_STATES} states")
 
     # Match arbitrary HMM state order across methods to SDP
     print("[INFO] Matching HMM state order ...")
@@ -353,7 +353,7 @@ if __name__ == "__main__":
         print(f"[INFO] Cached features to {cache}")
 
     # Compute state-segmentation agreement and Dice coefficients
-    # (4x4 matrix; per-subject vs SDP)
+    # (4x4 matrix; per-session vs SDP)
     labels = {m: feats[m]["labels"] for m in METHODS}
     agreement = np.eye(len(METHODS))
     dice = np.eye(len(METHODS))
@@ -361,8 +361,8 @@ if __name__ == "__main__":
         for b in range(len(METHODS)):
             agreement[a, b] = compute_label_agreement(labels[METHODS[a]], labels[METHODS[b]]).mean()
             dice[a, b] = np.nanmean(compute_label_dice(labels[METHODS[a]], labels[METHODS[b]], N_STATES))
-    agree_subj = np.column_stack([compute_label_agreement(labels[m], labels["sdp"]) for m in METHODS])
-    dice_subj = np.column_stack([compute_label_dice(labels[m], labels["sdp"], N_STATES) for m in METHODS])
+    agree_sess = np.column_stack([compute_label_agreement(labels[m], labels["sdp"]) for m in METHODS])
+    dice_sess = np.column_stack([compute_label_dice(labels[m], labels["sdp"], N_STATES) for m in METHODS])
 
     # Perform Friedman omnibus test on summary-statistics (Holm-corrected across states)
     friedman_chi2 = np.full((len(STAT_NAMES), N_STATES), np.nan)
@@ -377,10 +377,10 @@ if __name__ == "__main__":
             except ValueError:
                 pass  # e.g., a state with no cross-method variance -> leave NaN
         friedman_p_holm[si] = ut.holm_correct(friedman_p[si])
-    # NOTE: A (subject, state) pair is not an independent block (states within a subject are
-    # correlated), so we do NOT flatten subject x state. Instead, for each summary statistic
-    # we run Friedman across the four methods separately for every state, with the subjects
-    # as the matched blocks (n = n_subjects). We then Holm-correct the resulting p-values
+    # NOTE: A (session, state) pair is not an independent block (states within a session are
+    # correlated), so we do NOT flatten session x state. Instead, for each summary statistic
+    # we run Friedman across the four methods separately for every state, with the sessions
+    # as the matched blocks (n = n_sessions). We then Holm-correct the resulting p-values
     # across the states. Arrays are shaped (n_stats, n_states); rows follow STAT_NAMES.
 
     # Quantify inter-method similarity of group network features
@@ -421,11 +421,11 @@ if __name__ == "__main__":
     # Save features for the visualization
     np.savez(
         os.path.join(outdir, "dynamic_results.npz"),
-        dataset=dataset, methods=np.array(METHODS), subjects=np.array(subjects),
+        dataset=dataset, methods=np.array(METHODS), sessions=np.array(sessions),
         n_states=N_STATES, n_embeddings=N_EMBEDDINGS, n_parcels=C,
         best_run=np.array([best_run[m] for m in METHODS]),
         match_quality=np.array([match_quality[m] for m in METHODS]),
-        agreement=agreement, dice=dice, agree_subj=agree_subj, dice_subj=dice_subj,
+        agreement=agreement, dice=dice, agree_sess=agree_sess, dice_sess=dice_sess,
         sim_tde_cov=sim["tde_cov"], sim_psd=sim["gpsd"], sim_coh=sim["gcoh"],
         sim_power=sim["gpower"], sim_tp=sim["tp"],
         friedman_stats=np.array(STAT_NAMES),

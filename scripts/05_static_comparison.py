@@ -36,7 +36,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # Define a helper function for loading static features
 def load_static_features(dataset):
     """
-    Loads each method's static features for a specified dataset, subject-aligned.
+    Loads each method's static features for a specified dataset, session-aligned.
 
     Returns a dict with a name->column map ``midx``, the invariance QC deviations,
     the inter-method group-covariance similarity, the group TDE matrices (per method
@@ -50,19 +50,19 @@ def load_static_features(dataset):
             raise FileNotFoundError(f"missing {path} -- run 04_static_analysis.py {dataset} {m}")
         features[m] = dict(np.load(path, allow_pickle=True))
 
-    # Get common subjects across methods, with order taken from SDP
-    subj = {m: features[m]["subjects"].tolist() for m in ut.METHODS}
-    common = set.intersection(*[set(subj[m]) for m in ut.METHODS])
-    subjects = [s for s in subj["sdp"] if s in common]
-    pos = {m: {s: i for i, s in enumerate(subj[m])} for m in ut.METHODS}
-    order = {m: [pos[m][s] for s in subjects] for m in ut.METHODS}
+    # Get common sessions across methods, with order taken from SDP
+    sess = {m: features[m]["sessions"].tolist() for m in ut.METHODS}
+    common = set.intersection(*[set(sess[m]) for m in ut.METHODS])
+    sessions = [s for s in sess["sdp"] if s in common]
+    pos = {m: {s: i for i, s in enumerate(sess[m])} for m in ut.METHODS}
+    order = {m: [pos[m][s] for s in sessions] for m in ut.METHODS}
 
     # Get data dimensions and metadata
     C = int(features["sdp"]["n_parcels"])
     n_emb = int(features["sdp"]["n_embeddings"])
     midx = {m: i for i, m in enumerate(ut.METHODS)}
 
-    # Invariance QC (max |method - SDP| over subjects for the sign-invariant features)
+    # Invariance QC (max |method - SDP| over sessions for the sign-invariant features)
     qc = {}
     for feat in ["psd", "power", "aec"]:
         st = {m: features[m][feat][order[m]] for m in ut.METHODS}
@@ -79,7 +79,7 @@ def load_static_features(dataset):
 
     return {
         "dataset": dataset,
-        "n": len(subjects),
+        "n": len(sessions),
         "C": C, "n_emb": n_emb,
         "template": str(features["sdp"]["template"]),
         "midx": midx, "qc": qc, "inter": inter,

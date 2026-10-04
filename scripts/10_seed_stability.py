@@ -4,7 +4,7 @@ Measure seed stability for the sign-flipping methods that include randomized pro
 Background: ``random`` and ``sdp`` both draw random numbers, so their output can
 vary with the RNG seed; ``spectral`` and ``belief_propagation`` are deterministic
 by construction (no seed) and are therefore omitted. This script re-runs sign flipping
-for several seeds per subject and records the after-flip covariance-correlation metric,
+for several seeds per session and records the after-flip covariance-correlation metric,
 so we can quantify the run-to-run variability.
 
 Uses the same covariance construction and solver hyperparameters as ``01_sign_flip.py``
@@ -12,7 +12,7 @@ so the numbers are comparable with the deployed pipeline.
 
 Env: ``osle`` (imports sign-flipping algorithms)
 Usage:
-    python 10_seed_stability.py <dataset> [--n-subjects N] [--n-seeds N] [--n-jobs N]
+    python 10_seed_stability.py <dataset> [--n-sessions N] [--n-seeds N] [--n-jobs N]
 """
 
 # Import packages
@@ -60,8 +60,8 @@ def parse_args():
         help="Dataset name (e.g., camcan).",
     )
     p.add_argument(
-        "--n-subjects", type=int, default=None,
-        help="Use the first N non-template subjects (default: all)."
+        "--n-sessions", type=int, default=None,
+        help="Use the first N non-template sessions (default: all)."
     )
     p.add_argument(
         "--n-seeds", type=int, default=5,
@@ -69,14 +69,14 @@ def parse_args():
     )
     p.add_argument(
         "--n-jobs", type=int, default=1,
-        help="Parallel workers across subjects (default: 1, i.e. serial). "
+        help="Parallel workers across sessions (default: 1, i.e. serial). "
              "BLAS threads per worker are pinned to 1 to avoid oversubscription."
     )
     return p.parse_args()
 
 # Define a helper function
 def run_once(method, cov, template_cov, seed):
-    """Returns the after-flip metric for a single method, subject, and seed."""
+    """Returns the after-flip metric for a single method, session, and seed."""
     params = METHOD_PARAMS[method]
     if method == "random":
         _, metrics = sf.find_flips(
@@ -94,12 +94,12 @@ def run_once(method, cov, template_cov, seed):
     return float(np.asarray(metrics).ravel()[-1])
 
 
-def run_subject(cov, template_cov, seeds):
+def run_session(cov, template_cov, seeds):
     """
     Returns a dictionary with methods as keys and (n_seeds,) after-flip metric arrays
-    as values for a single subject.
+    as values for a single session.
 
-    Independent per subject, so this is the unit of work parallelized over.
+    Independent per session, so this is the unit of work parallelized over.
     """
     return {
         m: np.array([run_once(m, cov, template_cov, s) for s in seeds])
@@ -124,16 +124,16 @@ if __name__ == "__main__":
     if src_dir is None:
         raise FileNotFoundError(f"No src_<method> directory under {BASE_DIR}/{dataset}.")
     parc_files = sorted(glob(os.path.join(src_dir, "*/parc/lcmv-parc-raw.fif")))
-    subject_ids = [f.split("/")[-3] for f in parc_files]
-    print(f"[INFO] Found {len(subject_ids)} subjects in {src_dir}.")
+    session_ids = [f.split("/")[-3] for f in parc_files]
+    print(f"[INFO] Found {len(session_ids)} sessions in {src_dir}.")
 
-    # Define template subject (reusing found subjects)
-    template_subjects = {
+    # Define template session (reusing found sessions)
+    template_sessions = {
         "camcan": "sub-CC110606",
         "lemon": "sub-010295",
         "wakeman_henson": "sub15_run03",
     }
-    template = template_subjects.get(dataset)
+    template = template_sessions.get(dataset)
     print(f"[INFO] Template: {template}")
 
     # Load data TDE covariances
@@ -144,18 +144,18 @@ if __name__ == "__main__":
         standardize=STANDARDIZE,
         use_tqdm=True,
     )
-    template_cov = covs[subject_ids.index(template)]
+    template_cov = covs[session_ids.index(template)]
 
-    # Get subjects to evaluate (excluding the template)
-    eval_idx = [i for i in range(len(subject_ids)) if subject_ids[i] != template]
-    if args.n_subjects is not None:
-        eval_idx = eval_idx[:args.n_subjects]
-    print(f"[INFO] {len(eval_idx)} subjects x {len(METHODS)} methods x {len(seeds)} seeds "
+    # Get sessions to evaluate (excluding the template)
+    eval_idx = [i for i in range(len(session_ids)) if session_ids[i] != template]
+    if args.n_sessions is not None:
+        eval_idx = eval_idx[:args.n_sessions]
+    print(f"[INFO] {len(eval_idx)} sessions x {len(METHODS)} methods x {len(seeds)} seeds "
           f"(n_jobs = {args.n_jobs}) ...")
 
-    # Compute metrics per subject
-    # (parallelized over subjects, with each seed/method processed within the loop)
-    tasks = (delayed(run_subject)(covs[i], template_cov, seeds) for i in eval_idx)
+    # Compute metrics per session
+    # (parallelized over sessions, with each seed/method processed within the loop)
+    tasks = (delayed(run_session)(covs[i], template_cov, seeds) for i in eval_idx)
     if args.n_jobs == 1:
         results = Parallel(n_jobs=1, verbose=10)(tasks)
     else:
@@ -164,15 +164,15 @@ if __name__ == "__main__":
             results = Parallel(n_jobs=args.n_jobs, verbose=10)(tasks)
 
     metric = {m: np.full((len(eval_idx), len(seeds)), np.nan) for m in METHODS}
-    # metric[method]: (n_subjects, n_seeds)
+    # metric[method]: (n_sessions, n_seeds)
     for si, res in enumerate(results):
         for m in METHODS:
             metric[m][si] = res[m]
 
-    # Report per-subject variability across seeds, summarized over subjects
-    print("\nPer-subject standard deviation across seeds:")
+    # Report per-session variability across seeds, summarized over sessions
+    print("\nPer-session standard deviation across seeds:")
     for m in METHODS:
-        s = metric[m].std(axis=1)  # standard deviation over seeds per subject
+        s = metric[m].std(axis=1)  # standard deviation over seeds per session
         print(f"\t{m:<10} median std = {np.median(s):.2e}  "
               f"max std = {s.max():.2e} (mean metric {metric[m].mean():.4f})")
 
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     save = {
         "dataset": dataset,
         "methods": np.array(METHODS),
-        "subjects": np.array([subject_ids[i] for i in eval_idx]),
+        "sessions": np.array([session_ids[i] for i in eval_idx]),
         "seeds": np.array(seeds),
         "template": template,
         "n_parcels": covs.shape[1] // N_EMBEDDINGS,

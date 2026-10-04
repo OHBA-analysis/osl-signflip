@@ -4,7 +4,7 @@ Reads ``<dataset>/data/analysis_results.npz`` (from ``02_collect_results.py``)
 for every dataset and writes the following into the top-level ``figures/``:
 
     * ``fig1_performance``      -- Sign-flipping performance in Cam-CAN: metric distribution,
-                                   per-subject, paired SDP advantage, and cross-dataset SDP
+                                   per-session, paired SDP advantage, and cross-dataset SDP
                                    performance.
     * ``fig3_flip_decisions``   -- Cam-CAN flip decisions: agreement matrix, per-parcel
                                    disagreement, agreement with the 4-method consensus.
@@ -72,9 +72,9 @@ def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
                           edgecolor="0.7", lw=0.6, alpha=0.92))
 
 
-def draw_per_subject_sorted(ax, D, midx):
+def draw_per_session_sorted(ax, D, midx):
     """
-    Per-subject metric, subjects sorted by the SDP value (one line per method)
+    Per-session metric, with sessions sorted by the SDP value (one line per method)
     (Fig 1b, S1b, S1e).
     """
     after = D["after"]
@@ -84,9 +84,9 @@ def draw_per_subject_sorted(ax, D, midx):
     for m in ut.DISPLAY:
         ax.plot(xs, after[order, midx[m]], lw=0.8, color=ut.COLORS[m],
                 label=ut.LABELS[m], alpha=0.8)
-    ax.set_xlabel("Subject (sorted by SDP metric)")
+    ax.set_xlabel("Session (sorted by SDP metric)")
     ax.set_ylabel("After-flip covariance correlation")
-    ax.set_title("Per-subject Performance Metric")
+    ax.set_title("Per-session Performance Metric")
     ax.legend(frameon=False, ncol=2, loc="upper left")
     ax.grid(alpha=0.25)
 
@@ -130,21 +130,21 @@ def draw_paired_comparison(ax, D, midx, rng):
 
 
 def draw_cross_dataset_sdp(ax, data, rng):
-    """SDP per-subject metric as one box per dataset (Fig 1d)."""
-    n_subjects = []
+    """SDP per-session metric as one box per dataset (Fig 1d)."""
+    n_sessions = []
     for i, ds in enumerate(ut.ALL_DATASETS):
         D, midx = data[ds]
         x = D["after"][:, midx["sdp"]]
-        n_subjects.append(x.size)
+        n_sessions.append(x.size)
         bp = ax.boxplot(x, positions=[i], widths=0.6, patch_artist=True,
                         showfliers=False, zorder=2,
                         medianprops=dict(color="black", lw=1.2))
         bp["boxes"][0].set(facecolor=ut.COLORS["sdp"], alpha=0.45, edgecolor="0.3", lw=0.8)
-        ax.scatter(np.full(n_subjects[-1], i) + rng.uniform(-0.14, 0.14, n_subjects[-1]), x,
+        ax.scatter(np.full(n_sessions[-1], i) + rng.uniform(-0.14, 0.14, n_sessions[-1]), x,
                    s=4, color=ut.COLORS["sdp"], alpha=0.4, zorder=3, edgecolors="none")
     ax.set_xticks(range(len(ut.ALL_DATASETS)))
     ax.set_xticklabels(
-        [ut.DATASET_LABELS[d] + f"\n(n = {n})" for d, n in zip(ut.ALL_DATASETS, n_subjects)],
+        [ut.DATASET_LABELS[d] + f"\n(n = {n})" for d, n in zip(ut.ALL_DATASETS, n_sessions)],
         ha="center",
     )
     ax.set_ylabel("After-flip covariance correlation")
@@ -155,10 +155,10 @@ def draw_cross_dataset_sdp(ax, data, rng):
 def draw_sign_flip_curve(ax, D, midx):
     """
     Plots metric curves before and after sign-flipping in original
-    subject order (Fig S2).
+    session order (Fig S2).
     """
     after = D["after"]
-    n = after.shape[0]  # number of subjects
+    n = after.shape[0]  # number of sessions
     x = np.arange(n) + 1
     ax.plot(x, D["before"], lw=1.0, color="0.5", ls="--", label="Before", alpha=0.9)
     for m in ut.DISPLAY:
@@ -199,7 +199,7 @@ def draw_parcel_disagreement(ax, D):
     order = np.argsort(-pd)
     ax.bar(range(pd.shape[0]), pd[order], color="#30638e", alpha=0.85)
     ax.set_xlabel("Parcel (sorted by disagreement)")
-    ax.set_ylabel("Fraction of disagreeing subjects")
+    ax.set_ylabel("Fraction of disagreeing sessions")
     ax.set_title(f"Per-Parcel Disagreement Rate ({pd.shape[0]} parcels)")
     ax.grid(axis="y", alpha=0.25)
 
@@ -239,7 +239,7 @@ def fig1_performance(data, rng):
     # Plot figures
     fig, axes = plt.subplots(2, 2, figsize=(7.2, 6.4))
     draw_distribution(axes[0, 0], D, midx, rng, friedman=fr)
-    draw_per_subject_sorted(axes[0, 1], D, midx)
+    draw_per_session_sorted(axes[0, 1], D, midx)
     draw_paired_comparison(axes[1, 0], D, midx, rng)
     draw_cross_dataset_sdp(axes[1, 1], data, rng)
 
@@ -277,7 +277,7 @@ def figS1_performance(data, rng):
         fr = ut.friedman_omnibus(D["after"], midx)
         draw_distribution(axes[r, 0], D, midx, rng, friedman=fr,
                           friedman_center=(ds == "wakeman_henson"))
-        draw_per_subject_sorted(axes[r, 1], D, midx)
+        draw_per_session_sorted(axes[r, 1], D, midx)
         draw_paired_comparison(axes[r, 2], D, midx, rng)
         axes[r, 0].set_ylabel(f"{ut.DATASET_LABELS[ds]}\nAfter-flip correlation")
 
@@ -300,7 +300,7 @@ def figS2_sign_flip_curve(data):
         axes[row].set_title(f"{ut.DATASET_LABELS[ds]}  (n = {D['after'].shape[0]})")
 
     # Axis settings
-    axes[-1].set_xlabel("Subjects")
+    axes[-1].set_xlabel("Recording sessions")
     axes[0].legend(frameon=False, ncol=5, loc="lower center", bbox_to_anchor=(0.5, 1.15))
     for ax, tag in zip(axes, "abc"):
         ut.panel_tag(ax, tag)
@@ -335,7 +335,7 @@ if __name__ == "__main__":
     data = {ds: ut.load_analysis_results(ds) for ds in ut.ALL_DATASETS}
     for ds in ut.ALL_DATASETS:
         D, _ = data[ds]
-        print(f"[INFO] {ds}: n = {D['after'].shape[0]} subjects, "
+        print(f"[INFO] {ds}: n = {D['after'].shape[0]} sessions, "
               f"{int(D['n_parcels'])} parcels")
 
     # Generate figures

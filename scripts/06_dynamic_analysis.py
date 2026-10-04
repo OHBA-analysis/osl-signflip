@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     # Get data files
     file_paths = sorted(glob(os.path.join(data_dir, "*/*_sflip_lcmv-parc-raw.fif")))
-    print(f"[INFO] Number of available subjects: {len(file_paths)}")
+    print(f"[INFO] Number of available sessions: {len(file_paths)}")
 
     # Prepare data (TDE + PCA + standardize)
     input_data = Data(

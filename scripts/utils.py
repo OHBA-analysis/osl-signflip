@@ -139,7 +139,7 @@ def corr(a, b):
 
 
 # --------------------------------------------------------
-# Statistics (recomputed from the raw per-subject metrics)
+# Statistics (recomputed from the raw per-session metrics)
 # --------------------------------------------------------
 
 def holm_correct(pvals):
@@ -179,11 +179,11 @@ def friedman_omnibus(scores, midx=None):
     """
     Friedman test across the four methods, with Kendall's W effect size.
 
-    ``scores``: (n_subjects, n_methods) per-subject metric matrix, one column per
-    method (indexed by ``midx``). The Friedman test treats subjects as the matched
+    ``scores``: (n_sessions, n_methods) per-session metric matrix, one column per
+    method (indexed by ``midx``). The Friedman test treats sessions as the matched
     blocks and the method as the repeated measure.
     
-    Returns a dict with ``chi2``, ``p``, ``kendalls_w`` and ``n`` (subjects).
+    Returns a dict with ``chi2``, ``p``, ``kendalls_w`` and ``n`` (sessions).
     """
     cols = [scores[:, midx[m]] for m in METHODS] if midx else \
            [scores[:, i] for i in range(scores.shape[1])]
@@ -197,10 +197,10 @@ def paired_vs_sdp(scores, midx):
     """
     Wilcoxon signed-rank of SDP vs each baseline, Holm-corrected.
 
-    ``scores``: (n_subjects, n_methods) per-subject metric matrix, one column per
+    ``scores``: (n_sessions, n_methods) per-session metric matrix, one column per
     method (indexed by ``midx``). For each baseline, the SDP column and that
-    baseline's column are the two *paired* samples over subjects, so this is a
-    matched signed-rank test on the per-subject differences ``SDP - baseline``.
+    baseline's column are the two *paired* samples over sessions, so this is a
+    matched signed-rank test on the per-session differences ``SDP - baseline``.
 
     Returns a dict with baseline method keys (in ``DISPLAY`` order, SDP omitted)
     with per-comparison ``meanD``, ``medianD``, ``winpct`` (SDP > baseline),

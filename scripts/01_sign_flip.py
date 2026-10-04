@@ -57,7 +57,7 @@ def parse_args():
     parser.add_argument(
         "--template",
         default=None,
-        help="Subject ID to use as the alignment template. "
+        help="Session ID to use as the alignment template. "
              "If omitted, a good template is found automatically.",
     )
     parser.add_argument(
@@ -78,7 +78,7 @@ def build_config(sign_flipping_method, template):
     sign_flipping_method : str
         The sign flipping method to use.
     template : str
-        The subject ID to use as the target alignment template.
+        The session ID to use as the target alignment template.
 
     Returns
     -------
@@ -110,18 +110,18 @@ if __name__ == "__main__":
     # Set up FSL
     source_recon.setup_fsl(FSL_DIR)
 
-    # Get subject IDs
+    # Get session IDs
     src_dir = os.path.join(BASE_DIR, f"{dataset}/src_{sign_flipping_method}")
     file_paths = sorted(glob(os.path.join(src_dir, "*/parc/lcmv-parc-raw.fif")))
-    subject_ids = [file.split("/")[-3] for file in file_paths]
-    print(f"[INFO] Number of available subjects: {len(subject_ids)}")
+    session_ids = [file.split("/")[-3] for file in file_paths]
+    print(f"[INFO] Number of available sessions: {len(session_ids)}")
 
-    # Find a good template subject to align other subjects to
+    # Find a good template session to align other sessions to
     if template is None:
         template = source_recon.find_template_subject(
-            src_dir, subject_ids, n_embeddings=15, standardize=True
+            src_dir, session_ids, n_embeddings=15, standardize=True
         )
-    print(f"[INFO] Using subject/session {template} as the template.")
+    print(f"[INFO] Using session {template} as the template.")
 
     # Configure pipeline
     config = build_config(sign_flipping_method, template)
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     source_recon.run_src_batch(
         config,
         outdir=src_dir,
-        subjects=subject_ids,
+        subjects=session_ids,
         dask_client=True,
         random_seed=0,
     )
