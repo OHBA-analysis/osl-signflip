@@ -30,7 +30,7 @@ METHOD_PARAMS = {
         "beta": 2.0,
         "damping": 0.5,
         "prior_strength": 1e-3,
-        "tol": 1e-6,
+        "bp_tol": 1e-6,
     },
     "sdp": {
         "sdp_n_restarts": 5,

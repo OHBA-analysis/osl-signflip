@@ -69,7 +69,7 @@ METHOD_PARAMS = {
         "beta": 2.0,
         "damping": 0.5,
         "prior_strength": 1e-3,
-        "tol": 1e-6,
+        "bp_tol": 1e-6,
     },
     "sdp": {
         "sdp_n_restarts": 5,
@@ -136,11 +136,11 @@ def time_method(method, cov, template_cov, n_embeddings, n_repeats, n_warmup):
     elif method == "belief_propagation":
         core_fn = lambda: sf.find_flips_belief_propagation(
             cov, template_cov, E,
-            n_iter=params["bp_n_iter"],
+            bp_n_iter=params["bp_n_iter"],
             beta=params["beta"],
             damping=params["damping"],
             prior_strength=params["prior_strength"],
-            tol=params["tol"],
+            bp_tol=params["bp_tol"],
             refine=False,
         )
     elif method == "sdp":
