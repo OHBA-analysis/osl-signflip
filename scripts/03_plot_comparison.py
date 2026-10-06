@@ -6,11 +6,11 @@ for every dataset and writes the following into the top-level ``figures/``:
     * ``fig1_performance``      -- Sign-flipping performance in Cam-CAN: metric distribution,
                                    per-session, paired SDP advantage, and cross-dataset SDP
                                    performance.
-    * ``fig3_flip_decisions``   -- Cam-CAN flip decisions: agreement matrix, per-parcel
+    * ``fig2_flip_decisions``   -- Cam-CAN flip decisions: agreement matrix, per-parcel
                                    disagreement, agreement with the 4-method consensus.
     * ``figS1_performance``     -- Fig 1a-c reproduced on LEMON and Wakeman-Henson.
     * ``figS2_sign_flip_curve`` -- Before and four after-flip curves, one row per dataset.
-    * ``figS3_flip_decisions``  -- Fig 3 reproduced on LEMON and Wakeman-Henson.
+    * ``figS3_flip_decisions``  -- Fig 2 reproduced on LEMON and Wakeman-Henson.
 
 Env: ``osld`` (or any env with numpy/scipy/matplotlib).
 Usage:
@@ -171,7 +171,7 @@ def draw_sign_flip_curve(ax, D, midx):
 def draw_agreement(ax, D, midx):
     """
     Flip-decision agreement matrix (fraction of parcels, up to a global sign)
-    (Fig 3a, S3a, S3d).
+    (Fig 2a, S3a, S3d).
     """
     idx = [midx[m] for m in ut.DISPLAY]
     A = D["agreement"][np.ix_(idx, idx)]
@@ -193,7 +193,7 @@ def draw_agreement(ax, D, midx):
 def draw_parcel_disagreement(ax, D):
     """
     Per-parcel disagreement rate across methods (parcels sorted, descending)
-    (Fig 3b, S3b, S3d).
+    (Fig 2b, S3b, S3e).
     """
     pd = D["parcel_disagreement"]
     order = np.argsort(-pd)
@@ -207,7 +207,7 @@ def draw_parcel_disagreement(ax, D):
 def draw_consensus(ax, D, midx, rng):
     """
     Per-method agreement with the 4-method consensus (box + jitter)
-    (Fig 3c, S3c, S3f).
+    (Fig 2c, S3c, S3f).
     """
     cons = D["consensus_agreement"]
     n = cons.shape[0]
@@ -250,8 +250,8 @@ def fig1_performance(data, rng):
     ut.save_fig(fig, "fig1_performance")
 
 
-def fig3_flip_decisions(data, rng):
-    """Figure 3: Cam-CAN flip-decision agreement, disagreement, consensus."""
+def fig2_flip_decisions(data, rng):
+    """Figure 2: Cam-CAN flip-decision agreement, disagreement, consensus."""
     # Load data
     D, midx = data[ut.PRIMARY]
 
@@ -265,7 +265,7 @@ def fig3_flip_decisions(data, rng):
     for ax, tag in zip(axes, "abc"):
         ut.panel_tag(ax, tag)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
-    ut.save_fig(fig, "fig3_flip_decisions")
+    ut.save_fig(fig, "fig2_flip_decisions")
 
 
 def figS1_performance(data, rng):
@@ -309,7 +309,7 @@ def figS2_sign_flip_curve(data):
 
 
 def figS3_flip_decisions(data, rng):
-    """Figure S3: Fig 3 reproduced on the two other datasets."""
+    """Figure S3: Fig 2 reproduced on the two other datasets."""
     # Plot figures
     fig, axes = plt.subplots(len(ut.REPRO), 3, figsize=(11, 3.6 * len(ut.REPRO)))
     for r, ds in enumerate(ut.REPRO):
@@ -340,7 +340,7 @@ if __name__ == "__main__":
 
     # Generate figures
     fig1_performance(data, rng)
-    fig3_flip_decisions(data, rng)
+    fig2_flip_decisions(data, rng)
     figS1_performance(data, rng)
     figS2_sign_flip_curve(data)
     figS3_flip_decisions(data, rng)

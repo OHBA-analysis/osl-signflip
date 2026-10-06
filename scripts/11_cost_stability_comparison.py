@@ -4,7 +4,7 @@ Reads the per-dataset ``benchmark_cost.npz`` (from ``09_benchmark_cost.py``) and
 ``seed_stability.npz`` (from ``10_seed_stability.py``) for every dataset and writes
 into the top-level ``figures/``:
 
-    * ``fig2_cost``            -- per-session wall-clock and analytic FLOPs per method,
+    * ``fig3_cost``            -- per-session wall-clock and analytic FLOPs per method,
                                   with the geometric-mean speed-up vs random annotated.
     * ``figS8_seed_stability`` -- run-to-run spread of the after-flip metric across RNG
                                   seeds for the randomized methods (i.e., random, SDP).
@@ -64,11 +64,11 @@ def _cost_panel(ax, bench, avail, value_fn, ylabel, annotate_speedup=False):
 
 
 # -----------------------------
-# Figures (includes Fig. 2, S8)
+# Figures (includes Fig. 3, S8)
 # -----------------------------
 
-def fig2_cost(bench, avail):
-    """Figure 2: Wall-clock (measured) and FLOPs (analytic) per method."""
+def fig3_cost(bench, avail):
+    """Figure 3: Wall-clock (measured) and FLOPs (analytic) per method."""
     def wall(B, m):
         tot = B[f"{m}_total"] * 1e3  # unit: ms
         return np.median(tot), *np.percentile(tot, [25, 75])
@@ -94,7 +94,7 @@ def fig2_cost(bench, avail):
     for ax, tag in zip(axes, "ab"):
         ut.panel_tag(ax, tag)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
-    ut.save_fig(fig, "fig2_cost")
+    ut.save_fig(fig, "fig3_cost")
 
 
 def figS8_seed_stability(seed, avail, rng):
@@ -149,9 +149,9 @@ if __name__ == "__main__":
     if cost:
         avail = [ds for ds in ut.ALL_DATASETS if ds in cost]
         print(f"[INFO] Cost benchmark available: {avail}")
-        fig2_cost(cost, avail)
+        fig3_cost(cost, avail)
     else:
-        print("[WARN] No benchmark_cost.npz found. Skipping Fig 2 (run 09_benchmark_cost.py).")
+        print("[WARN] No benchmark_cost.npz found. Skipping Fig 3 (run 09_benchmark_cost.py).")
 
     if stability:
         avail = [ds for ds in ut.ALL_DATASETS if ds in stability]
