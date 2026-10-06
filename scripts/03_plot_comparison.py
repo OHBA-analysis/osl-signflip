@@ -56,7 +56,7 @@ def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
 
     # Report Friedman omnibus test
     if friedman is not None:
-        txt = (f"Friedman $\\chi^2$ = {friedman['chi2']:.0f}\n"
+        txt = (f"Friedman $\\chi^2$ = {friedman['chi2']:.1f}\n"
                f"Kendall's $W$ = {friedman['kendalls_w']:.2f}\n"
                f"{ut.p_stars(friedman['p'])}\n"
                f"(template excluded)")
