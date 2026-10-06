@@ -103,6 +103,16 @@ def _coh_brain(conn):
     return _fig_to_image(fig)
 
 
+def _asterisks(p):
+    """
+    Marks significance by asterisks for a (corrected) p-value;
+    empty if not significant.
+    """
+    if not np.isfinite(p) or p >= 0.05:
+        return ""
+    return "***" if p < 1e-3 else "**" if p < 1e-2 else "*"
+
+
 def draw_matrix(
     ax,
     M,
@@ -172,21 +182,38 @@ def draw_box(ax, per_sess, midx, ylabel, title, rng):
     ax.grid(axis="y", alpha=0.25)
 
 
-def draw_grouped_bars(ax, feats, stat, ylabel):
+def draw_grouped_bars(ax, feats, stat, ylabel, p_holm=None):
     """
     Per-state summary statistics.
-    Plots one bar per method within each state (mean ± sem).
+    Plots one bar per method within each state (mean ± sem). If ``p_holm``
+    (per-state Holm-corrected Friedman p-values) is given, each significant state
+    is marked by a bracket spanning all four bars (omnibus test, no pairwise
+    comparisons) with asterisks.
     """
     K = np.asarray(feats["sdp"][stat]).shape[1]  # number of states
     x = np.arange(K)
     width = 0.8 / len(ut.DISPLAY)
+    offsets = (np.arange(len(ut.DISPLAY)) - (len(ut.DISPLAY) - 1) / 2) * width
+    tops = np.zeros(K)  # highest bar + error bar per state
     for i, m in enumerate(ut.DISPLAY):
         v = np.asarray(feats[m][stat])
         mean = v.mean(0)
         sem = v.std(0) / np.sqrt(v.shape[0])
-        ax.bar(x + (i - (len(ut.DISPLAY) - 1) / 2) * width, mean, width, yerr=sem,
+        tops = np.maximum(tops, mean + sem)
+        ax.bar(x + offsets[i], mean, width, yerr=sem,
                color=ut.COLORS[m], alpha=0.85, label=ut.LABELS[m],
                error_kw=dict(lw=0.6, ecolor="0.3"))
+    if p_holm is not None:
+        pad = 0.03 * tops.max()   # gap between the bars and the bracket
+        tick = 0.015 * tops.max()  # length of the bracket's downward ticks
+        for k in range(K):
+            star = _asterisks(p_holm[k])
+            if not star:
+                continue
+            y = tops[k] + pad
+            x0, x1 = x[k] + offsets[0], x[k] + offsets[-1]
+            ax.plot([x0, x0, x1, x1], [y - tick, y, y, y - tick], color="k", lw=0.6)
+            ax.text(x[k], y, star, ha="center", va="bottom", fontsize=7)
     ax.set_xticks(x)
     ax.set_xticklabels([str(k + 1) for k in range(K)])
     ax.set_xlabel("State"); ax.set_ylabel(ylabel)
@@ -211,9 +238,11 @@ def fig5_dynamics(R, rng):
              "Per-session Dice with SDP", rng)
     draw_matrix(axes[0, 2], R["sim_tde_cov"], midx, "Similarity in State-wise TDE Covariance",
                 cbar_tick_spacing=0.05, cbar_label="Pearson correlation")
-    draw_grouped_bars(axes[1, 0], feats, "fo", "Fractional occupancy")
-    draw_grouped_bars(axes[1, 1], feats, "lt", "Mean lifetime (s)")
-    draw_grouped_bars(axes[1, 2], feats, "sr", "Switching rate (Hz)")
+    stats = [str(s) for s in R["friedman_stats"]]
+    p_holm = {s: R["friedman_p_holm"][stats.index(s)] for s in ["fo", "lt", "sr"]}
+    draw_grouped_bars(axes[1, 0], feats, "fo", "Fractional occupancy", p_holm["fo"])
+    draw_grouped_bars(axes[1, 1], feats, "lt", "Mean lifetime (s)", p_holm["lt"])
+    draw_grouped_bars(axes[1, 2], feats, "sr", "Switching rate (Hz)", p_holm["sr"])
     for ax in axes[1, :]:
         ax.set_ylim(top=ax.get_ylim()[1] * 1.15)
         ax.legend(frameon=False, ncol=4, fontsize=6, loc="upper center",
