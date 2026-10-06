@@ -142,6 +142,33 @@ def corr(a, b):
 # Statistics (recomputed from the raw per-session metrics)
 # --------------------------------------------------------
 
+TIE_TOL = 1e-10  # |difference| below which two after-flip metrics are treated as tied
+# NOTE: Methods that reach the same flip vector give metrics that differ only by
+#       floating-point error (~1e-16), whereas genuine differences are >= ~1e-5.
+#       Without a tolerance, these numerical ties would be counted as wins/losses
+#       with an arbitrary sign. Keep in sync with ``TIE_TOL`` in 02_collect_results.py.
+
+
+def zero_near_ties(diff, tol=TIE_TOL):
+    """Sets paired differences with ``|diff| < tol`` to exactly zero (numerical ties)."""
+    diff = np.asarray(diff, dtype=float)
+    return np.where(np.abs(diff) < tol, 0.0, diff)
+
+
+def merge_row_ties(scores, tol=TIE_TOL):
+    """
+    Within each row (session), sets values that lie within ``tol`` of each other
+    to a common value, so that rank-based tests treat them as ties.
+    """
+    out = np.array(scores, dtype=float, copy=True)
+    for row in out:
+        order = np.argsort(row)
+        for prev, cur in zip(order[:-1], order[1:]):
+            if row[cur] - row[prev] < tol:
+                row[cur] = row[prev]
+    return out
+
+
 def holm_correct(pvals):
     """Holm-Bonferroni step-down correction. NaNs are ignored (kept as NaN)."""
     pvals = np.asarray(pvals, dtype=float)
@@ -164,7 +191,9 @@ def rank_biserial(diff):
     ``r = (T+ - T-) / (T+ + T-)`` over the non-zero differences, where ``T+/T-``
     are the summed ranks of the positive/negative ``|diff|``. Range [-1, 1];
     positive means the first condition (SDP) tends to exceed the baseline.
+    Differences below ``TIE_TOL`` are treated as zero.
     """
+    diff = zero_near_ties(diff)
     d = diff[diff != 0]
     if d.size == 0:
         return np.nan
@@ -184,7 +213,9 @@ def friedman_omnibus(scores, midx=None):
     blocks and the method as the repeated measure.
     
     Returns a dict with ``chi2``, ``p``, ``kendalls_w`` and ``n`` (sessions).
+    Within-session values closer than ``TIE_TOL`` are ranked as ties.
     """
+    scores = merge_row_ties(scores)
     cols = [scores[:, midx[m]] for m in METHODS] if midx else \
            [scores[:, i] for i in range(scores.shape[1])]
     chi2, p = friedmanchisquare(*cols)
@@ -205,16 +236,17 @@ def paired_vs_sdp(scores, midx):
     Returns a dict with baseline method keys (in ``DISPLAY`` order, SDP omitted)
     with per-comparison ``meanD``, ``medianD``, ``winpct`` (SDP > baseline),
     ``p`` (raw two-sided), ``p_holm`` and ``rank_biserial``. ``meanD``/``medianD``
-    are SDP - baseline.
+    are SDP - baseline. Differences below ``TIE_TOL`` are treated as zero (ties),
+    which the Wilcoxon test drops before ranking.
     """
     sdp = scores[:, midx["sdp"]]
     baselines = [m for m in DISPLAY if m != "sdp"]
     raw_p = []
     rows = {}
     for m in baselines:
-        diff = sdp - scores[:, midx[m]]
+        diff = zero_near_ties(sdp - scores[:, midx[m]])
         try:
-            p = float(wilcoxon(sdp, scores[:, midx[m]]).pvalue)
+            p = float(wilcoxon(diff).pvalue)
         except ValueError:  # all differences zero
             p = np.nan
         raw_p.append(p)

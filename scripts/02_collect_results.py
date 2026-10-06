@@ -34,6 +34,10 @@ BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"
 METHODS = ["random", "spectral", "sdp", "belief_propagation"]
 N_METHODS = len(METHODS)
 FLIP_SLICE = 100_000  # samples read to recover flip signs (sign is exact for any nonzero window)
+TIE_TOL = 1e-10       # |metric difference| below which two methods are treated as tied
+# NOTE: Methods that reach the same flip vector give metrics that differ only by
+#       floating-point error (~1e-16), whereas genuine differences are >= ~1e-5.
+#       Keep in sync with ``TIE_TOL`` in utils.py.
 
 # Define argument parser
 def parse_args():
@@ -179,12 +183,13 @@ if __name__ == "__main__":
     paired_medianD = np.full(N_METHODS, np.nan)
     paired_winpct = np.full(N_METHODS, np.nan)
     paired_wilcoxp = np.full(N_METHODS, np.nan)
-    paired_nties = np.full(N_METHODS, np.nan)  # exact-zero paired differences (SDP == baseline)
-    paired_effn = np.full(N_METHODS, np.nan)   # effective n the Wilcoxon test uses (zeros dropped)
+    paired_nties = np.full(N_METHODS, np.nan)  # tied paired differences (|SDP - baseline| < TIE_TOL)
+    paired_effn = np.full(N_METHODS, np.nan)   # effective n the Wilcoxon test uses (ties dropped)
     for mi, method in enumerate(METHODS):
         if mi == sdp:
             continue
         diff = after[:, sdp] - after[:, mi]
+        diff = np.where(np.abs(diff) < TIE_TOL, 0.0, diff)  # numerical ties -> exact zeros
         nties = int(np.sum(diff == 0))
         paired_nties[mi] = nties
         paired_effn[mi] = n_sessions - nties
@@ -192,16 +197,16 @@ if __name__ == "__main__":
         paired_medianD[mi] = np.median(diff)
         paired_winpct[mi] = np.mean(diff > 0) * 100.0
         try:
-            paired_wilcoxp[mi] = wilcoxon(after[:, sdp], after[:, mi]).pvalue
+            paired_wilcoxp[mi] = wilcoxon(diff).pvalue
         except ValueError:
             paired_wilcoxp[mi] = np.nan
-    # NOTE: scipy.wilcoxon (zero_method="wilcox" by default) drops exact-zero differences,
-    #       so its effective n is n_sessions minus these ties. Record both ties and effective
-    #       n so the p-value can be read against the number of informative (non-tied) pairs
-    #       it was actually computed on.
+    # NOTE: scipy.wilcoxon (zero_method="wilcox" by default) drops zero differences, so its
+    #       effective n is n_sessions minus these ties. Record both ties and effective n so
+    #       the p-value can be read against the number of informative (non-tied) pairs it
+    #       was actually computed on.
 
-    # Compute win-rate matrix (row > col, %); diagonal is 0 (a > a is never true)
-    winrate = (after[:, :, None] > after[:, None, :]).mean(axis=0) * 100.0
+    # Compute win-rate matrix (row > col by more than TIE_TOL, %); diagonal is 0
+    winrate = ((after[:, :, None] - after[:, None, :]) > TIE_TOL).mean(axis=0) * 100.0
 
     # Compute pairwise agreement matrix (up to global sign), averaged over sessions
     same = (flips[:, None] == flips[None, :]).mean(axis=-1)
@@ -277,7 +282,7 @@ if __name__ == "__main__":
         )
     lines.append("")
     lines.append("Paired vs SDP (positive = SDP better), Wilcoxon two-sided")
-    lines.append("\t(nties = tied pairs dropped by wilcoxon; effN = effective n = n - nties):")
+    lines.append(f"\t(nties = tied pairs, |diff| < {TIE_TOL:.0e}, dropped by wilcoxon; effN = effective n = n - nties):")
     lines.append(
         f"\t{'baseline':<20}{'meanD':>10}{'medD':>10}{'SDPwin%':>9}{'nties':>7}{'effN':>7}{'wilcox_p':>12}"
     )
