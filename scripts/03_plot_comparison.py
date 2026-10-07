@@ -51,7 +51,7 @@ def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
     ax.set_xticks(range(len(ut.DISPLAY)))
     ax.set_xticklabels([ut.LABELS[m] for m in ut.DISPLAY], ha="center")
     ax.set_ylabel("After-flip covariance correlation")
-    ax.set_title(f"Sign-Flipping Performance (n = {n})")
+    ax.set_title(f"Sign-Flipping Performance (N = {n})")
     ax.grid(axis="y", alpha=0.25)
 
     # Report Friedman omnibus test
@@ -144,7 +144,7 @@ def draw_cross_dataset_sdp(ax, data, rng):
                    s=4, color=ut.COLORS["sdp"], alpha=0.4, zorder=3, edgecolors="none")
     ax.set_xticks(range(len(ut.ALL_DATASETS)))
     ax.set_xticklabels(
-        [ut.DATASET_LABELS[d] + f"\n(n = {n})" for d, n in zip(ut.ALL_DATASETS, n_sessions)],
+        [ut.DATASET_LABELS[d] + f"\n(N = {n})" for d, n in zip(ut.ALL_DATASETS, n_sessions)],
         ha="center",
     )
     ax.set_ylabel("After-flip covariance correlation")
@@ -297,7 +297,7 @@ def figS2_sign_flip_curve(data):
     for row, ds in enumerate(ut.ALL_DATASETS):
         D, midx = data[ds]
         draw_sign_flip_curve(axes[row], D, midx)
-        axes[row].set_title(f"{ut.DATASET_LABELS[ds]}  (n = {D['after'].shape[0]})")
+        axes[row].set_title(f"{ut.DATASET_LABELS[ds]}  (N = {D['after'].shape[0]})")
 
     # Axis settings
     axes[-1].set_xlabel("Recording sessions")
