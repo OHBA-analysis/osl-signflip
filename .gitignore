@@ -6,8 +6,13 @@ __pycache__/*
 */.ipynb_checkpoints/*
 Icon[^M]
 
-# Data and result directories
+# Data directories
 camcan/
 lemon/
 wakeman_henson/
 logs/
+
+# Directories for results and manuscript
+figures/
+manuscript/
+refs/
