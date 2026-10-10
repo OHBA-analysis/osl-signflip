@@ -20,7 +20,7 @@ COMMON_PARAMS = {
 
 METHOD_PARAMS = {
     "random": {
-        "n_init": 3,
+        "n_restarts": 3,
         "n_iter": 5000,
         "max_flips": 20,
     },

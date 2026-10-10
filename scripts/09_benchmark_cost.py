@@ -58,7 +58,7 @@ REFINE_PARAMS = {
 
 METHOD_PARAMS = {
     "random": {
-        "n_init": 3,
+        "n_restarts": 3,
         "n_iter": 5000,
         "max_flips": 20,
         "random_state": 0,
@@ -122,7 +122,7 @@ def time_method(method, cov, template_cov, n_embeddings, n_repeats, n_warmup):
     if method == "random":
         fn = lambda: sf.find_flips(
             cov, template_cov, E,
-            params["n_init"],
+            params["n_restarts"],
             params["n_iter"],
             params["max_flips"],
             use_tqdm=False,
@@ -204,8 +204,8 @@ def flop_model(n, E):
     # Initialize output dictionary
     out = {}
 
-    # [Random] n_init * n_iter full-metric evaluations (no refine)
-    rand_core = random["n_init"] * random["n_iter"] * metric
+    # [Random] n_restarts * n_iter full-metric evaluations (no refine)
+    rand_core = random["n_restarts"] * random["n_iter"] * metric
     out["random"] = {"core": rand_core, "refine": 0.0, "total": rand_core}
 
     # [Spectral] eigh takes ~ (4/3) n**3 + O(D**2) affinity build

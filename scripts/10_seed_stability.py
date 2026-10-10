@@ -37,7 +37,7 @@ REFINE_PARAMS = {
 
 METHOD_PARAMS = {
     "random": {
-        "n_init": 3,
+        "n_restarts": 3,
         "n_iter": 5000,
         "max_flips": 20,
     },
@@ -81,7 +81,7 @@ def run_once(method, cov, template_cov, seed):
     if method == "random":
         _, metrics = sf.find_flips(
             cov, template_cov, N_EMBEDDINGS,
-            params["n_init"], params["n_iter"], params["max_flips"],
+            params["n_restarts"], params["n_iter"], params["max_flips"],
             use_tqdm=False, random_state=seed,
         )
     else:  # SDP
