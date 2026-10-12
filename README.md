@@ -47,14 +47,22 @@ pytest                        # run its test suite
 
 ## 🎯 Requirements
 
-The analyses rely on two OHBA software packages, each with its own conda environment:
+All analysis scripts run in a single conda environment, `osld`, with two OHBA software packages:
 
 | Package | Environment | Used by |
 | :------ | :---------- | :------ |
-| [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) | `osle` (v2.4.0) | Source reconstruction and the sign-flipping solvers (scripts `01`, `09`, `10`) |
+| [`osl-signflip`](src/osl_signflip) | `osld` (this repository) | Sign flipping, cost benchmark, and seed stability (scripts `01`, `09`, `10`) |
 | [`osl-dynamics`](https://github.com/OHBA-analysis/osl-dynamics) | `osld` (v3.5.1) | Static/dynamic feature extraction, TDE-HMM, and visualization (scripts `03`–`08`, `11`) |
 
-Please follow the installation guide [here](https://osl-ephys.readthedocs.io/en/latest/install.html) and [here](https://osl-dynamics.readthedocs.io/en/latest/install.html) to set up the environments. Once complete, clone this repository to your preferred directory and you're ready to begin.
+Please follow the installation guide [here](https://osl-dynamics.readthedocs.io/en/latest/install.html) to set up the `osld` environment. Once complete, clone this repository to your preferred directory and install `osl-signflip` into the same environment:
+
+```bash
+conda activate osld
+pip install -e ".[mne]"   # run from the root of this repository
+```
+
+> [!NOTE]
+> The scripts start from source-reconstructed parcel time courses, which were produced with [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) (not part of this repository). The sign-flipping results reported in the paper were also produced with `osl-ephys`, in a separate `osle` environment initially; `osl-signflip` reproduces them exactly, except that its random search can differ by a global sign (see above).
 
 > [!NOTE]
 > All the code within this repository was executed on the Oxford Biomedical Research Computing (BMRC) servers. While individual jobs were allocated varying CPUs and GPUs, general information about the BMRC resources can be found at [_Using the BMRC Cluster with Slurm_](https://www.medsci.ox.ac.uk/for-staff/resources/bmrc/using-the-bmrc-cluster-with-slurm) and [_GPU Resources_](https://www.medsci.ox.ac.uk/for-staff/resources/bmrc/gpu-resources).
