@@ -23,7 +23,7 @@ more than 2,000 times faster than random search while giving equally good or bet
 ## 📌 Installation
 
 ```bash
-pip install osl-signflip            # core (NumPy and tqdm only)
+pip install osl-signflip            # core (NumPy, tqdm, and joblib only)
 pip install "osl-signflip[mne]"     # + helpers for MNE-Python Raw/Epochs and .fif files
 ```
 
@@ -33,12 +33,16 @@ pip install "osl-signflip[mne]"     # + helpers for MNE-Python Raw/Epochs and .f
 import osl_signflip as oslsf
 
 # data: list of (n_samples, n_parcels) arrays, one per session
-flips, metrics, template = oslsf.align_signs(data, n_embeddings=15, method="sdp")
-data_flipped = [oslsf.apply_flips(x, f) for x, f in zip(data, flips)]
+flips, metrics, template, data_flipped = oslsf.align_signs(
+    data, n_embeddings=15, method="sdp", apply=True, n_jobs=8
+)
 ```
 
 `flips[s]` is a vector of ±1 per parcel for session `s`, and `metrics[s]` tracks the correlation between
-the session and template covariances (first entry: before flipping; last entry: after).
+the session and template covariances (first entry: before flipping; last entry: after). The template is
+selected automatically; to choose it yourself, pass `template=` (the index of a session in `data`, or the
+time series of another session) or `template_cov=` (a precomputed template covariance). `n_jobs` sets the
+number of parallel worker processes (`-1` uses all CPU cores).
 
 To work directly with covariances, e.g. when aligning new sessions to an existing template:
 
@@ -47,16 +51,21 @@ cov = oslsf.compute_covariance(x, n_embeddings=15)
 flips, metrics = oslsf.find_flips(cov, template_cov, n_embeddings=15, method="sdp")
 ```
 
-With MNE-Python objects (parcel channels named `parcel_X`, as written by `osl-ephys`):
+With parcellated `.fif` files (MNE-Python `Raw`/`Epochs` with parcel channels named `parcel_X`, as written
+by `osl-ephys`), one call loads each file, finds the flips, and saves the sign-flipped data. Each worker
+handles one file at a time, so only a few sessions are held in memory:
 
 ```python
 from osl_signflip import io
 
-covs = io.load_covariances(["sub-01_parc-raw.fif", "sub-02_parc-raw.fif"], n_embeddings=15)
-template = oslsf.find_template(covs, diag_offset=15)
-flips, _ = oslsf.find_flips(covs[0], covs[template], n_embeddings=15)
-raw_flipped = io.apply_flips(raw, flips)
+flips, metrics, template = io.sign_flip_files(
+    ["sub-01_parc-raw.fif", "sub-02_parc-raw.fif", ...],              # input files
+    ["sub-01_sflip_parc-raw.fif", "sub-02_sflip_parc-raw.fif", ...],  # output files
+    n_embeddings=15, method="sdp", n_jobs=16,
+)
 ```
+
+Here, `template=` can be the index of an input file or the path to any template file.
 
 ## A note on the global sign
 

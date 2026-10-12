@@ -16,9 +16,6 @@ import os
 import pickle
 from glob import glob
 
-import mne
-import osl_signflip as sf
-from joblib import Parallel, delayed, parallel_backend
 from osl_signflip import io as sf_io
 
 # Set directories
@@ -81,15 +78,6 @@ def parse_args():
     return parser.parse_args()
 
 # Define helper functions
-def load_covariance(parc_file):
-    """Computes the TDE covariance of a parcellated data file."""
-    return sf_io.load_covariances(
-        [parc_file],
-        n_embeddings=COMMON_PARAMS["n_embeddings"],
-        standardize_data=COMMON_PARAMS["standardize"],
-    )[0]
-
-
 def add_to_report(report_file, info):
     """
     Adds info to a session's report data, keeping the entries already there
@@ -104,52 +92,6 @@ def add_to_report(report_file, info):
     data.update(info)
     with open(report_file, "wb") as fh:
         pickle.dump(data, fh)
-
-
-def sign_flip_session(src_dir, session, template, template_cov, method):
-    """
-    Finds and applies the sign flips for one session, saves the sign-flipped data,
-    and records the metrics.
-
-    Returns
-    -------
-    session : str
-        Session ID.
-    before : float
-        Metric before sign flipping.
-    after : float
-        Metric of the applied sign flips.
-    """
-    # Get file paths
-    parc_file = os.path.join(src_dir, session, "parc", "lcmv-parc-raw.fif")
-    sflip_file = os.path.join(src_dir, session, f"{session}_sflip_lcmv-parc-raw.fif")
-    report_file = os.path.join(src_dir, "src_report", session, "data.pkl")
-
-    # Find the channels to flip
-    cov = load_covariance(parc_file)
-    flips, metrics = sf.find_flips(
-        cov,
-        template_cov,
-        COMMON_PARAMS["n_embeddings"],
-        method=method,
-        **METHOD_PARAMS[method],
-    )
-
-    # Apply flips to the parcellated data and save
-    raw = mne.io.read_raw_fif(parc_file, verbose=False)
-    sf_io.apply_flips(raw, flips).save(sflip_file, overwrite=True, verbose=False)
-
-    # Save info for the report
-    add_to_report(report_file, {
-        "fix_sign_ambiguity": True,
-        "method": method,
-        "template": template,
-        **COMMON_PARAMS,
-        **METHOD_PARAMS[method],
-        "metrics": metrics,
-    })
-
-    return session, metrics[0], metrics[-1]
 
 
 # SIGN FLIP DATA
@@ -167,38 +109,46 @@ if __name__ == "__main__":
     session_ids = [file.split("/")[-3] for file in file_paths]
     print(f"[INFO] Number of available sessions: {len(session_ids)}")
 
-    # Find a good template session to align other sessions to
-    if template is None:
-        covs = sf_io.load_covariances(
-            file_paths,
-            n_embeddings=COMMON_PARAMS["n_embeddings"],
-            standardize_data=COMMON_PARAMS["standardize"],
-            use_tqdm=True,
-        )
-        template_index = sf.find_template(
-            covs, diag_offset=COMMON_PARAMS["n_embeddings"], use_tqdm=True
-        )
-        template = session_ids[template_index]
-        template_cov = covs[template_index]
-    else:
-        if template not in session_ids:
-            raise ValueError(f"Template session {template} not found in {src_dir}.")
-        template_cov = load_covariance(file_paths[session_ids.index(template)])
-    print(f"[INFO] Using session {template} as the template.")
+    # Set the template session (if omitted, a good template is found automatically)
+    if template is not None and template not in session_ids:
+        raise ValueError(f"Template session {template} not found in {src_dir}.")
 
-    # Perform sign flipping
-    tasks = (
-        delayed(sign_flip_session)(
-            src_dir, session, template, template_cov, sign_flipping_method
-        )
+    # Find and apply the sign flips, and save the sign-flipped data
+    out_paths = [
+        os.path.join(src_dir, session, f"{session}_sflip_lcmv-parc-raw.fif")
         for session in session_ids
+    ]
+    flips, metrics, template_index = sf_io.sign_flip_files(
+        file_paths,
+        out_paths,
+        n_embeddings=COMMON_PARAMS["n_embeddings"],
+        method=sign_flipping_method,
+        template=None if template is None else session_ids.index(template),
+        standardize_data=COMMON_PARAMS["standardize"],
+        n_jobs=args.n_workers,
+        use_tqdm=True,
+        **METHOD_PARAMS[sign_flipping_method],
     )
-    # Pin BLAS threads to 1 per worker so that the workers don't oversubscribe the cores
-    with parallel_backend("loky", inner_max_num_threads=1):
-        results = Parallel(n_jobs=args.n_workers, verbose=10)(tasks)
+    template = session_ids[template_index]
+    print(f"[INFO] Used session {template} as the template.")
 
-    # Report metrics before and after sign flipping
-    for session, before, after in results:
-        print(f"\t{session}: metric before {before:.4f}, after {after:.4f}")
+    # Print metrics before and after sign flipping
+    # (the template is not flipped against itself, so its metrics are NaN)
+    for session, session_metrics in zip(session_ids, metrics):
+        add_to_report(
+            os.path.join(src_dir, "src_report", session, "data.pkl"),
+            {
+                "fix_sign_ambiguity": True,
+                "method": sign_flipping_method,
+                "template": template,
+                **COMMON_PARAMS,
+                **METHOD_PARAMS[sign_flipping_method],
+                "metrics": session_metrics,
+            },
+        )  # save info for the report
+        print(
+            f"\t{session}: metric before {session_metrics[0]:.4f}, "
+            f"after {session_metrics[-1]:.4f}"
+        )
 
     print("Sign flipping complete.")
