@@ -1,6 +1,6 @@
 # Cho2026_SignFlip
 
-This repository contains the scripts and results for reproducing the analyses in our work on **deterministic solvers for the dipole sign-ambiguity problem** in parcellated M/EEG source reconstruction.
+This repository contains the scripts and results for reproducing the analyses in our work on **new sign-flipping algorithms for the dipole sign-ambiguity problem** in parcellated M/EEG source reconstruction.
 
 🙋‍♂️ Please email SungJun Cho at sungjun.cho@ndcn.ox.ac.uk or simply raise GitHub Issues if you have any questions or concerns.
 
@@ -25,7 +25,16 @@ across static and dynamic (TDE-HMM) downstream features.
 
 The headline result is an at least **~160× speed-up with full reproducibility at equal-or-better quality**, with SDP as the best solver.
 
-The solvers themselves are implemented in [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) (see `osl_ephys/source_recon/sign_flipping.py`); this repository holds the experiment, analysis, and figure-generation scripts.
+The methods are available in two forms:
+- **`osl-signflip`**, a lightweight standalone Python package (NumPy only) whose source lives in [`src/osl_signflip/`](src/osl_signflip) (see [`src/README.md`](src/README.md) for usage), and
+- [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) (see `osl_ephys/source_recon/sign_flipping.py`), which was used to produce the results in the paper.
+
+The two implementations give identical results, except that random search in `osl-signflip` also applies the global sign convention, so its sign assignments can differ from those of `osl-ephys` by a global sign (checked by `tests/test_equivalence_osl_ephys.py`). This repository additionally holds the experiment, analysis, and figure-generation scripts.
+
+```bash
+pip install -e ".[mne,dev]"   # install osl-signflip from this repository
+pytest                        # run its test suite
+```
 
 ## 🎯 Requirements
 
@@ -90,6 +99,11 @@ Cho2026_SignFlip/
 │   ├── 10_seed_stability.py            # Seed-to-seed variability of the randomized methods
 │   ├── 11_cost_stability_comparison.py # Fig 2, S8: compute cost and seed stability
 │   └── utils.py                        # Shared plotting, statistics, and I/O helpers
+│
+├── src/osl_signflip/                   # Standalone sign-flipping package (pip-installable)
+├── tests/                              # osl-signflip test suite (pytest)
+├── pyproject.toml                      # osl-signflip packaging metadata
+├── CITATION.cff
 │
 ├── {camcan, lemon, wakeman_henson}/    # Per-dataset directory (data; not tracked in git)
 │   ├── src_{random, spectral, sdp, belief_propagation}/
