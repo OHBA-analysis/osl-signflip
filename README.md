@@ -31,6 +31,15 @@ The methods are available in two forms:
 
 The two implementations give identical results, except that random search in `osl-signflip` also applies the global sign convention, so its sign assignments can differ from those of `osl-ephys` by a global sign (checked by `tests/test_equivalence_osl_ephys.py`). This repository additionally holds the experiment, analysis, and figure-generation scripts.
 
+To install `osl-signflip` in a fresh conda environment:
+
+```bash
+conda create -n oslsf python=3.12
+conda activate oslsf && pip install osl-signflip
+```
+
+To install it from this repository instead (e.g., for development):
+
 ```bash
 pip install -e ".[mne,dev]"   # install osl-signflip from this repository
 pytest                        # run its test suite
@@ -42,8 +51,8 @@ The analyses rely on two OHBA software packages, each with its own conda environ
 
 | Package | Environment | Used by |
 | :------ | :---------- | :------ |
-| [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) | `osle` | Source reconstruction and the sign-flipping solvers (scripts `01`, `09`, `10`) |
-| [`osl-dynamics`](https://github.com/OHBA-analysis/osl-dynamics) | `osld` | Static/dynamic feature extraction, TDE-HMM, and visualization (scripts `03`–`08`, `11`) |
+| [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) | `osle` (v2.4.0) | Source reconstruction and the sign-flipping solvers (scripts `01`, `09`, `10`) |
+| [`osl-dynamics`](https://github.com/OHBA-analysis/osl-dynamics) | `osld` (v3.5.1) | Static/dynamic feature extraction, TDE-HMM, and visualization (scripts `03`–`08`, `11`) |
 
 Please follow the installation guide [here](https://osl-ephys.readthedocs.io/en/latest/install.html) and [here](https://osl-dynamics.readthedocs.io/en/latest/install.html) to set up the environments. Once complete, clone this repository to your preferred directory and you're ready to begin.
 
