@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you find this toolbox useful, please cite the paper referenced below."
+title: "osl-signflip: sign-flipping for source-reconstructed M/EEG data"
+type: software
+authors:
+  - family-names: Cho
+    given-names: SungJun
+    affiliation: "Oxford Centre for Human Brain Activity, University of Oxford"
+    email: sungjun.cho@ndcn.ox.ac.uk
+repository-code: "https://github.com/OHBA-analysis/Cho2026_SignFlip"
+license: MIT
+version: 0.1.0.dev0
+keywords:
+  - MEG
+  - EEG
+  - source reconstruction
+  - dipole sign ambiguity
+  - Z2 synchronization

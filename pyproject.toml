@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "osl-signflip"
+dynamic = ["version"]
+description = "Fast, reproducible sign-flipping for source-reconstructed M/EEG parcel time series via Z2 synchronisation."
+readme = "src/README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "SungJun Cho", email = "sungjun.cho@ndcn.ox.ac.uk" }]
+keywords = [
+    "MEG",
+    "EEG",
+    "source reconstruction",
+    "dipole sign ambiguity",
+    "sign flipping",
+    "Z2 synchronization",
+    "semidefinite programming",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = ["numpy>=1.20"]
+
+[project.optional-dependencies]
+mne = ["mne>=1.0"]
+progress = ["tqdm"]
+dev = ["pytest", "ruff"]
+all = ["osl_signflip[mne,progress,dev]"]
+
+[project.urls]
+Homepage = "https://github.com/OHBA-analysis/Cho2026_SignFlip"
+Issues = "https://github.com/OHBA-analysis/Cho2026_SignFlip/issues"
+
+[tool.hatch.version]
+path = "src/osl_signflip/__init__.py"
+
+# Only the package goes into the wheel/sdist; the paper pipeline (scripts/, manuscript/, data) stays out.
+[tool.hatch.build.targets.wheel]
+packages = ["src/osl_signflip"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "tests", "LICENSE", "pyproject.toml", "CITATION.cff"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 90
+src = ["src"]
+include = ["src/**/*.py", "tests/**/*.py"]
