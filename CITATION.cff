@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Cho
     given-names: SungJun
-    affiliation: "Oxford Centre for Human Brain Activity, University of Oxford"
+    affiliation: "Nuffield Department of Clinical Neurosciences, University of Oxford"
     email: sungjun.cho@ndcn.ox.ac.uk
 repository-code: "https://github.com/OHBA-analysis/osl-signflip"
 license: MIT
