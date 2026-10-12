@@ -77,4 +77,4 @@ If you use `osl-signflip`, please cite the accompanying paper (citation to be ad
 
 ## License
 
-Copyright (c) 2026 [SungJun Cho](https://github.com/scho97) and [OHBA Analysis Group](https://github.com/OHBA-analysis). `osl-signflip` is a free and open-source software licensed under the [MIT License](https://github.com/OHBA-analysis/Cho2026_SignFlip/blob/main/LICENSE).
+Copyright (c) 2026 [SungJun Cho](https://github.com/scho97) and [OHBA Analysis Group](https://github.com/OHBA-analysis). `osl-signflip` is a free and open-source software licensed under the [MIT License](https://github.com/OHBA-analysis/osl-signflip/blob/main/LICENSE).

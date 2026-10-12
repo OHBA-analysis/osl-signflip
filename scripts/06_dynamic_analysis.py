@@ -30,7 +30,7 @@ from osl_dynamics.utils import set_random_seed
 METHODS = ["random", "spectral", "sdp", "belief_propagation"]
 
 # Set directories
-BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"
+BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
 
 # Define analysis constants
 FS = 250                # sampling frequency (Hz)

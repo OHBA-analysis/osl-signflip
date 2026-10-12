@@ -1,4 +1,4 @@
-# Cho2026_SignFlip
+# osl-signflip
 
 This repository contains the scripts and results for reproducing the analyses in our work on **new sign-flipping algorithms for the dipole sign-ambiguity problem** in parcellated M/EEG source reconstruction.
 
@@ -85,7 +85,7 @@ python scripts/11_cost_stability_comparison.py
 ## 📚 Project Structure
 
 ```
-Cho2026_SignFlip/
+osl-signflip/
 ├── scripts/
 │   ├── 01_sign_flip.py                 # Apply sign flipping (random/spectral/BP/SDP) to source data
 │   ├── 02_collect_results.py           # Collect after-flip metrics + recover flip decisions
@@ -120,4 +120,4 @@ Cho2026_SignFlip/
 
 ## 🪪 License
 
-Copyright (c) 2026 [SungJun Cho](https://github.com/scho97) and [OHBA Analysis Group](https://github.com/OHBA-analysis). `Cho2026_SignFlip` is a free and open-source software licensed under the [MIT License](https://github.com/OHBA-analysis/Cho2026_SignFlip/blob/main/LICENSE).
+Copyright (c) 2026 [SungJun Cho](https://github.com/scho97) and [OHBA Analysis Group](https://github.com/OHBA-analysis). `osl-signflip` is a free and open-source software licensed under the [MIT License](https://github.com/OHBA-analysis/osl-signflip/blob/main/LICENSE).

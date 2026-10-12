@@ -7,7 +7,7 @@ authors:
     given-names: SungJun
     affiliation: "Oxford Centre for Human Brain Activity, University of Oxford"
     email: sungjun.cho@ndcn.ox.ac.uk
-repository-code: "https://github.com/OHBA-analysis/Cho2026_SignFlip"
+repository-code: "https://github.com/OHBA-analysis/osl-signflip"
 license: MIT
 keywords:
   - MEG

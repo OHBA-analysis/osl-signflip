@@ -18,7 +18,7 @@ from scipy.stats import friedmanchisquare, rankdata, wilcoxon
 logging.getLogger("fontTools").setLevel(logging.WARNING)
 
 # Set directories
-BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"  # project root
+BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"  # project root
 FIG_DIR = os.path.join(BASE_DIR, "figures")  # top-level figure directory
 
 # Define datasets

@@ -28,7 +28,7 @@ from scipy.stats import wilcoxon
 mne.set_log_level("ERROR")
 
 # Set directories
-BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"
+BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
 
 # Analysis constants
 METHODS = ["random", "spectral", "sdp", "belief_propagation"]

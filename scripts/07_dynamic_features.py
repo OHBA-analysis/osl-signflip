@@ -52,7 +52,7 @@ from osl_dynamics.inference import modes
 from scipy.stats import friedmanchisquare
 
 # Set directories
-BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"
+BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
 
 # Define analysis constants (must match 06_dynamic_analysis.py)
 METHODS = ["random", "spectral", "sdp", "belief_propagation"]

@@ -35,8 +35,8 @@ dev = ["pytest", "ruff"]
 all = ["osl_signflip[mne,dev]"]
 
 [project.urls]
-Homepage = "https://github.com/OHBA-analysis/Cho2026_SignFlip"
-Issues = "https://github.com/OHBA-analysis/Cho2026_SignFlip/issues"
+Homepage = "https://github.com/OHBA-analysis/osl-signflip"
+Issues = "https://github.com/OHBA-analysis/osl-signflip/issues"
 
 # The version number is derived automatically from git tags (e.g. v0.1.0 -> 0.1.0)
 [tool.hatch.version]

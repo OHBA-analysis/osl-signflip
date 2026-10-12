@@ -41,7 +41,7 @@ from osl_dynamics.data import Data
 
 
 # Set directories
-BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"
+BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
 
 # Define analysis constants
 FS = 250                # sampling frequency (Hz)
