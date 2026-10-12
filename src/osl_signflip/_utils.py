@@ -3,10 +3,11 @@
 # Authors: SungJun Cho <sungjun.cho@ndcn.ox.ac.uk>
 
 import numpy as np
+from tqdm import trange
 
 
 def progress_range(n, desc=None, use_tqdm=False):
-    """Returns ``range(n)``, wrapped in a tqdm progress bar if requested and installed.
+    """Returns ``range(n)``, wrapped in a tqdm progress bar if requested.
 
     Parameters
     ----------
@@ -16,7 +17,6 @@ def progress_range(n, desc=None, use_tqdm=False):
         Progress bar description.
     use_tqdm : bool, optional
         Should we display a tqdm progress bar?
-        Requires ``tqdm`` (``pip install osl-signflip[progress]``).
 
     Returns
     -------
@@ -24,12 +24,6 @@ def progress_range(n, desc=None, use_tqdm=False):
         Iterator over ``range(n)``.
     """
     if use_tqdm:
-        try:
-            from tqdm import trange
-        except ImportError as e:
-            raise ImportError(
-                "use_tqdm=True requires tqdm. Install it with `pip install osl-signflip[progress]`."
-            ) from e
         return trange(n, desc=desc)
     return range(n)
 

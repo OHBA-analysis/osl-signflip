@@ -23,7 +23,7 @@ more than 2,000 times faster than random search while giving equally good or bet
 ## 📌 Installation
 
 ```bash
-pip install osl-signflip            # core (NumPy only)
+pip install osl-signflip            # core (NumPy and tqdm only)
 pip install "osl-signflip[mne]"     # + helpers for MNE-Python Raw/Epochs and .fif files
 ```
 

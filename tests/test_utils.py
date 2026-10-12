@@ -26,3 +26,10 @@ def test_apply_flip_convention_picks_one_of_each_pair():
     for _ in range(200):
         f = rng.choice([-1.0, 1.0], size=38)
         np.testing.assert_array_equal(apply_flip_convention(f), apply_flip_convention(-f))
+
+
+def test_progress_range():
+    from osl_signflip._utils import progress_range
+
+    assert list(progress_range(3)) == [0, 1, 2]
+    assert list(progress_range(3, desc="test", use_tqdm=True)) == [0, 1, 2]

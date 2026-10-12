@@ -27,13 +27,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
-dependencies = ["numpy>=1.20"]
+dependencies = ["numpy>=1.20", "tqdm"]
 
 [project.optional-dependencies]
 mne = ["mne>=1.0"]
-progress = ["tqdm"]
 dev = ["pytest", "ruff"]
-all = ["osl_signflip[mne,progress,dev]"]
+all = ["osl_signflip[mne,dev]"]
 
 [project.urls]
 Homepage = "https://github.com/OHBA-analysis/Cho2026_SignFlip"

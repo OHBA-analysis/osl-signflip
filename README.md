@@ -26,7 +26,7 @@ across static and dynamic (TDE-HMM) downstream features.
 The headline result is an at least **~160× speed-up with full reproducibility at equal-or-better quality**, with SDP as the best solver.
 
 The methods are available in two forms:
-- **`osl-signflip`**, a lightweight standalone Python package (NumPy only) whose source lives in [`src/osl_signflip/`](src/osl_signflip) (see [`src/README.md`](src/README.md) for usage), and
+- **`osl-signflip`**, a lightweight standalone Python package (NumPy and tqdm only) whose source lives in [`src/osl_signflip/`](src/osl_signflip) (see [`src/README.md`](src/README.md) for usage), and
 - [`osl-ephys`](https://github.com/OHBA-analysis/osl-ephys) (see `osl_ephys/source_recon/sign_flipping.py`), which was used to produce the results in the paper.
 
 The two implementations give identical results, except that random search in `osl-signflip` also applies the global sign convention, so its sign assignments can differ from those of `osl-ephys` by a global sign (checked by `tests/test_equivalence_osl_ephys.py`). This repository additionally holds the experiment, analysis, and figure-generation scripts.
