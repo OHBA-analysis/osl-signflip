@@ -24,7 +24,7 @@ from joblib import Parallel, delayed, parallel_backend
 from osl_ephys.source_recon import sign_flipping as sf
 
 # Set directories
-BASE_DIR = "/well/woolrich/users/olt015/Cho2026_SignFlip"
+BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
 
 # Set hyperparameters
 N_EMBEDDINGS = 15
