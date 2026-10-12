@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.27"]
+requires = ["hatchling>=1.27", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -38,8 +38,9 @@ all = ["osl_signflip[mne,dev]"]
 Homepage = "https://github.com/OHBA-analysis/Cho2026_SignFlip"
 Issues = "https://github.com/OHBA-analysis/Cho2026_SignFlip/issues"
 
+# The version number is derived automatically from git tags (e.g. v0.1.0 -> 0.1.0)
 [tool.hatch.version]
-path = "src/osl_signflip/__init__.py"
+source = "vcs"
 
 # Only the package goes into the wheel/sdist; the paper pipeline (scripts/, manuscript/, data) stays out.
 [tool.hatch.build.targets.wheel]

@@ -6,6 +6,8 @@ synchronisation problem with semidefinite programming (default), spectral synchr
 loopy belief propagation, or random search.
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
 from .api import METHODS, align_signs, apply_flips, find_flips
 from .covariance import compute_covariance, compute_covariances, standardize, time_embed
 from .metric import apply_flips_to_covariance, covariance_matrix_correlation
@@ -18,7 +20,13 @@ from .solvers import (
 )
 from .template import find_template
 
-__version__ = "0.1.0.dev0"
+# Set up the version (derived from git tags at build time)
+try:
+    __version__ = version("osl-signflip")
+except PackageNotFoundError:
+    __version__ = "unknown"
+finally:
+    del version, PackageNotFoundError
 
 __all__ = [
     "METHODS",

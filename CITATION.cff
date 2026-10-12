@@ -9,7 +9,6 @@ authors:
     email: sungjun.cho@ndcn.ox.ac.uk
 repository-code: "https://github.com/OHBA-analysis/Cho2026_SignFlip"
 license: MIT
-version: 0.1.0.dev0
 keywords:
   - MEG
   - EEG
