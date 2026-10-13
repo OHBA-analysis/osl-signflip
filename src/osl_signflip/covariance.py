@@ -162,7 +162,7 @@ def compute_covariance(x, n_embeddings=1, standardize_data=True):
 
 
 def compute_covariances(
-    data, n_embeddings=1, standardize_data=True, n_jobs=1, use_tqdm=False
+    data, n_embeddings=1, standardize_data=True, n_jobs=1, use_tqdm=True
 ):
     """Computes the TDE covariance of multiple sessions.
 

@@ -300,7 +300,6 @@ if __name__ == "__main__":
         parc_files,
         n_embeddings=E,
         standardize_data=COMMON_PARAMS["standardize"],
-        use_tqdm=True,
     )
     template_cov = covs[session_ids.index(template)]
     n_parcels = covs.shape[1] // E

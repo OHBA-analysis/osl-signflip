@@ -131,7 +131,7 @@ def _load_covariance(fname, n_embeddings, standardize_data, loader):
 
 
 def load_covariances(
-    fnames, n_embeddings=1, standardize_data=True, loader=None, n_jobs=1, use_tqdm=False
+    fnames, n_embeddings=1, standardize_data=True, loader=None, n_jobs=1, use_tqdm=True
 ):
     """Loads parcellated data files and returns their covariance matrices.
 
@@ -191,9 +191,6 @@ def apply_flips(inst, flips, picks=None):
         picks = get_parcel_channels(inst)
     flips = np.asarray(flips, dtype=float)
 
-    sflip = inst.copy()
-    sflip.load_data()
-
     # Flip the sign of the channels
     if isinstance(inst, mne.BaseEpochs):
 
@@ -205,7 +202,10 @@ def apply_flips(inst, flips, picks=None):
         def flip(data):
             return data * flips[:, np.newaxis]
 
-    sflip.apply_function(flip, picks=picks, channel_wise=False)
+    with mne.utils.use_log_level(False):  # silences MNE's per-file messages
+        sflip = inst.copy()
+        sflip.load_data()
+        sflip.apply_function(flip, picks=picks, channel_wise=False)
     return sflip
 
 
@@ -247,7 +247,7 @@ def sign_flip_files(
     template_cov=None,
     standardize_data=True,
     n_jobs=1,
-    use_tqdm=False,
+    use_tqdm=True,
     **kwargs,
 ):
     """Sign-flips parcellated data files and saves the sign-flipped data.
@@ -299,6 +299,9 @@ def sign_flip_files(
     """
     _import_mne()
     _check_method(method)
+    if method == "random":
+        # Show one overall progress bar, not one per session from each worker
+        kwargs.setdefault("use_tqdm", False)
     fnames = [str(f) for f in fnames]
     out_fnames = [str(f) for f in out_fnames]
     if len(fnames) != len(out_fnames):
@@ -331,7 +334,7 @@ def sign_flip_files(
                 template_index = real.index(os.path.realpath(template))
             else:
                 template_cov = load_covariances(
-                    [template], n_embeddings, standardize_data
+                    [template], n_embeddings, standardize_data, use_tqdm=False
                 )[0]
         else:
             template_index = int(template)
@@ -344,7 +347,7 @@ def sign_flip_files(
             covs[template_index]
             if covs[template_index] is not None
             else load_covariances(
-                [fnames[template_index]], n_embeddings, standardize_data
+                [fnames[template_index]], n_embeddings, standardize_data, use_tqdm=False
             )[0]
         )
 

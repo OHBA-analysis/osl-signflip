@@ -126,7 +126,6 @@ if __name__ == "__main__":
         template=None if template is None else session_ids.index(template),
         standardize_data=COMMON_PARAMS["standardize"],
         n_jobs=args.n_workers,
-        use_tqdm=True,
         **METHOD_PARAMS[sign_flipping_method],
     )
     template = session_ids[template_index]

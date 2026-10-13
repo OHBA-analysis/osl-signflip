@@ -143,7 +143,6 @@ if __name__ == "__main__":
         parc_files,
         n_embeddings=N_EMBEDDINGS,
         standardize_data=STANDARDIZE,
-        use_tqdm=True,
     )
     template_cov = covs[session_ids.index(template)]
 

@@ -114,7 +114,7 @@ def align_signs(
     standardize_data=True,
     apply=False,
     n_jobs=1,
-    use_tqdm=False,
+    use_tqdm=True,
     **kwargs,
 ):
     """Aligns the signs of a group of sessions to a common template.
@@ -168,6 +168,9 @@ def align_signs(
         Sign-flipped time series for each session. Only returned if ``apply=True``.
     """
     _check_method(method)
+    if method == "random":
+        # Show one overall progress bar, not one per session from each worker
+        kwargs.setdefault("use_tqdm", False)
     if template is not None and template_cov is not None:
         raise ValueError("Pass either template or template_cov, not both.")
 
