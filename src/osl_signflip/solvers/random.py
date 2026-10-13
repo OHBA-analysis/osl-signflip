@@ -63,7 +63,7 @@ def find_flips_random(
     n_restarts=3,
     n_iter=2500,
     max_flips=20,
-    use_tqdm=False,
+    use_tqdm=True,
     random_state=0,
 ):
     """Finds channels to flip using random search.

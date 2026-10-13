@@ -10,7 +10,7 @@ so we can quantify the run-to-run variability.
 Uses the same covariance construction and solver hyperparameters as ``01_sign_flip.py``
 so the numbers are comparable with the deployed pipeline.
 
-Env: ``osle`` (imports sign-flipping algorithms)
+Env: ``osld`` (with ``osl-signflip`` installed)
 Usage:
     python 10_seed_stability.py <dataset> [--n-sessions N] [--n-seeds N] [--n-jobs N]
 """
@@ -21,7 +21,8 @@ import numpy as np
 import os
 from glob import glob
 from joblib import Parallel, delayed, parallel_backend
-from osl_ephys.source_recon import sign_flipping as sf
+import osl_signflip as sf
+from osl_signflip import io as sf_io
 
 # Set directories
 BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
@@ -79,7 +80,7 @@ def run_once(method, cov, template_cov, seed):
     """Returns the after-flip metric for a single method, session, and seed."""
     params = METHOD_PARAMS[method]
     if method == "random":
-        _, metrics = sf.find_flips(
+        _, metrics = sf.find_flips_random(
             cov, template_cov, N_EMBEDDINGS,
             params["n_restarts"], params["n_iter"], params["max_flips"],
             use_tqdm=False, random_state=seed,
@@ -138,11 +139,10 @@ if __name__ == "__main__":
 
     # Load data TDE covariances
     print("[INFO] Loading covariances ...")
-    covs = sf.load_covariances(
+    covs = sf_io.load_covariances(
         parc_files,
         n_embeddings=N_EMBEDDINGS,
-        standardize=STANDARDIZE,
-        use_tqdm=True,
+        standardize_data=STANDARDIZE,
     )
     template_cov = covs[session_ids.index(template)]
 

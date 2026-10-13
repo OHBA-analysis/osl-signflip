@@ -3,7 +3,49 @@
 # Authors: SungJun Cho <sungjun.cho@ndcn.ox.ac.uk>
 
 import numpy as np
-from tqdm import trange
+from joblib import Parallel, delayed, parallel_backend
+from tqdm import tqdm, trange
+
+
+def parallel_map(func, args_list, n_jobs=1, desc=None, use_tqdm=False):
+    """Applies a function to each set of arguments, optionally in parallel.
+
+    With ``n_jobs=1``, the calls run serially in the current process. Otherwise, they
+    run in separate worker processes (joblib's ``loky`` backend), each limited to one
+    BLAS thread so that the workers do not oversubscribe the CPU cores. Exceptions
+    raised in a worker are re-raised in the current process.
+
+    Parameters
+    ----------
+    func : callable
+        Function to apply.
+    args_list : iterable of tuple
+        Positional arguments for each call.
+    n_jobs : int, optional
+        Number of parallel worker processes. ``-1`` uses all CPU cores.
+    desc : str, optional
+        Progress bar description.
+    use_tqdm : bool, optional
+        Should we display a tqdm progress bar?
+
+    Returns
+    -------
+    results : list
+        Return values, in the same order as ``args_list``.
+    """
+    args_list = list(args_list)
+    if n_jobs == 1:
+        return [
+            func(*args_list[i])
+            for i in progress_range(len(args_list), desc=desc, use_tqdm=use_tqdm)
+        ]
+    with parallel_backend("loky", inner_max_num_threads=1):
+        results = Parallel(n_jobs=n_jobs, return_as="generator")(
+            delayed(func)(*args) for args in args_list
+        )
+        if use_tqdm:
+            results = tqdm(results, total=len(args_list), desc=desc)
+        return list(results)
 
 
 def progress_range(n, desc=None, use_tqdm=False):

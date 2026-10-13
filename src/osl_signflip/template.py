@@ -12,7 +12,7 @@ from ._utils import progress_range
 from .metric import covariance_matrix_correlation
 
 
-def find_template(covs, diag_offset=0, use_tqdm=False):
+def find_template(covs, diag_offset=0, use_tqdm=True):
     """Finds a good template session to use to align dipoles.
 
     We select the median session after calculating the similarity between

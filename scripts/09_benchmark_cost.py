@@ -1,7 +1,7 @@
 """Benchmark the computational cost (wallclock + FLOPs) of the four sign-flipping methods.
 
 This is a *cost* benchmark, kept deliberately separate from ``01_sign_flip.py`` (which
-produces the deployed flips via Dask + disk I/O). For a fair speed comparison we must:
+produces the deployed flips via joblib + disk I/O). For a fair speed comparison we must:
 
   1. run **serially, single-threaded** (no Dask, BLAS threads pinned to 1) so the wallclock
      reflects the algorithm, not the scheduler;
@@ -18,7 +18,7 @@ NOTE: Wallclock is the empirical ground truth and the FLOP column is an order-of
 The refine settings mirror ``01_sign_flip.py`` (all new methods share one strategy) such that
 the timing is apples-to-apples with the deployed run.
 
-Env: ``osle`` (imports sign-flipping algorithms)
+Env: ``osld`` (with ``osl-signflip`` installed)
 Usage
 -----
     python 09_benchmark_cost.py <dataset> [--methods <methods>] [--n-sessions N] \
@@ -38,7 +38,8 @@ import argparse
 import numpy as np
 import time
 from glob import glob
-from osl_ephys.source_recon import sign_flipping as sf
+import osl_signflip as sf
+from osl_signflip import io as sf_io
 
 
 # Set directories
@@ -120,7 +121,7 @@ def time_method(method, cov, template_cov, n_embeddings, n_repeats, n_warmup):
     params = METHOD_PARAMS[method]
 
     if method == "random":
-        fn = lambda: sf.find_flips(
+        fn = lambda: sf.find_flips_random(
             cov, template_cov, E,
             params["n_restarts"],
             params["n_iter"],
@@ -158,7 +159,7 @@ def time_method(method, cov, template_cov, n_embeddings, n_repeats, n_warmup):
 
     (flips_core, _), t_core, _ = time_function_call(core_fn, n_repeats, n_warmup)
 
-    refine_fn = lambda: sf._greedy_refine(
+    refine_fn = lambda: sf.greedy_refine(
         cov, template_cov, flips_core, E,
         REFINE_PARAMS["n_refine"], strategy=REFINE_PARAMS["refine_strategy"],
     )
@@ -295,11 +296,10 @@ if __name__ == "__main__":
 
     # Load data TDE covariances (expensive I/O, done a single time)
     print("[INFO] Loading covariances ...")
-    covs = sf.load_covariances(
+    covs = sf_io.load_covariances(
         parc_files,
         n_embeddings=E,
-        standardize=COMMON_PARAMS["standardize"],
-        use_tqdm=True,
+        standardize_data=COMMON_PARAMS["standardize"],
     )
     template_cov = covs[session_ids.index(template)]
     n_parcels = covs.shape[1] // E

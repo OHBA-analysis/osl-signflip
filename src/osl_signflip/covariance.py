@@ -10,10 +10,22 @@ import warnings
 
 import numpy as np
 
-from ._utils import progress_range
+from ._utils import parallel_map
 
 
-def _check_data(x, n_embeddings, where=""):
+def _warn_if_transposed(shape, where="", stacklevel=2):
+    """Warns if data of the given shape look like (n_channels, n_samples)."""
+    n_samples, n_channels = shape
+    if n_channels > n_samples:
+        warnings.warn(
+            f"{where}data have more channels ({n_channels}) than samples ({n_samples}). "
+            "Data must be (n_samples, n_channels); did you pass (n_channels, n_samples)?",
+            UserWarning,
+            stacklevel=stacklevel + 1,
+        )
+
+
+def _check_data(x, n_embeddings, where="", warn=True):
     """Validates the parcel time series of one session.
 
     Parameters
@@ -24,6 +36,10 @@ def _check_data(x, n_embeddings, where=""):
         Number of time-delay embeddings.
     where : str, optional
         Prefix identifying the session in error messages (e.g. ``"session 3: "``).
+    warn : bool, optional
+        Should we warn if the data look transposed? Set to ``False`` when the caller has
+        already checked the shape, e.g., before sending the data to worker processes
+        (warnings raised in a worker process are not passed on to the user).
 
     Returns
     -------
@@ -35,7 +51,7 @@ def _check_data(x, n_embeddings, where=""):
         raise ValueError(
             f"{where}x must be a 2D (n_samples, n_channels) array, got shape {x.shape}."
         )
-    n_samples, n_channels = x.shape
+    n_samples = x.shape[0]
     if n_samples < n_embeddings + 1:
         raise ValueError(
             f"{where}time-delay embedding with n_embeddings={n_embeddings} needs at least "
@@ -52,19 +68,14 @@ def _check_data(x, n_embeddings, where=""):
             f"{where}channel(s) {flat.tolist()} are constant (zero variance), so their sign "
             "cannot be determined. Remove them before sign flipping."
         )
-    if n_channels > n_samples:
-        warnings.warn(
-            f"{where}data have more channels ({n_channels}) than samples ({n_samples}). "
-            "Data must be (n_samples, n_channels); did you pass (n_channels, n_samples)?",
-            UserWarning,
-            stacklevel=4,
-        )
+    if warn:
+        _warn_if_transposed(x.shape, where, stacklevel=4)
     return x
 
 
-def _compute_covariance(x, n_embeddings, standardize_data, where=""):
+def _compute_covariance(x, n_embeddings, standardize_data, where="", warn=True):
     """Validates the data, then computes its time-delay-embedded covariance."""
-    x = _check_data(x, n_embeddings, where)
+    x = _check_data(x, n_embeddings, where, warn=warn)
     x = time_embed(x, n_embeddings)
     if standardize_data:
         x = standardize(x)
@@ -150,7 +161,9 @@ def compute_covariance(x, n_embeddings=1, standardize_data=True):
     return _compute_covariance(x, n_embeddings, standardize_data)
 
 
-def compute_covariances(data, n_embeddings=1, standardize_data=True, use_tqdm=False):
+def compute_covariances(
+    data, n_embeddings=1, standardize_data=True, n_jobs=1, use_tqdm=True
+):
     """Computes the TDE covariance of multiple sessions.
 
     Parameters
@@ -162,6 +175,8 @@ def compute_covariances(data, n_embeddings=1, standardize_data=True, use_tqdm=Fa
         Number of time-delay embeddings. Must be odd.
     standardize_data : bool, optional
         Should we standardize the embedded data before computing the covariance?
+    n_jobs : int, optional
+        Number of parallel worker processes. ``-1`` uses all CPU cores.
     use_tqdm : bool, optional
         Should we display a tqdm progress bar?
 
@@ -171,13 +186,19 @@ def compute_covariances(data, n_embeddings=1, standardize_data=True, use_tqdm=Fa
         Covariance matrices. Shape is (n_sessions, n_channels * n_embeddings,
         n_channels * n_embeddings).
     """
-    covs = []
-    for i in progress_range(len(data), desc="Calculating covariances", use_tqdm=use_tqdm):
-        covs.append(
-            _compute_covariance(
-                data[i], n_embeddings, standardize_data, where=f"session {i}: "
-            )
-        )
+    for i, x in enumerate(data):
+        if np.ndim(x) == 2:
+            _warn_if_transposed(np.shape(x), where=f"session {i}: ", stacklevel=2)
+    covs = parallel_map(
+        _compute_covariance,
+        [
+            (data[i], n_embeddings, standardize_data, f"session {i}: ", False)
+            for i in range(len(data))
+        ],
+        n_jobs=n_jobs,
+        desc="Calculating covariances",
+        use_tqdm=use_tqdm,
+    )
     return _stack_covariances(
         covs,
         [f"session {i}" for i in range(len(covs))],

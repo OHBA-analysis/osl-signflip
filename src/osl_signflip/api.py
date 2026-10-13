@@ -3,10 +3,12 @@
 # Authors: SungJun Cho <sungjun.cho@ndcn.ox.ac.uk>
 
 import logging
+from functools import partial
 
 import numpy as np
 
-from .covariance import compute_covariances
+from ._utils import parallel_map
+from .covariance import compute_covariance, compute_covariances
 from .solvers import (
     find_flips_belief_propagation,
     find_flips_random,
@@ -25,6 +27,23 @@ _SOLVERS = {
 }
 
 METHODS = tuple(_SOLVERS)  # names of the available sign-flipping methods
+
+
+def _check_method(method):
+    """Raises an error if ``method`` is not an available sign-flipping method."""
+    if method not in _SOLVERS:
+        raise ValueError(
+            f"Invalid method '{method}'. Must be one of {', '.join(map(repr, METHODS))}."
+        )
+
+
+def _stack_metrics(metrics):
+    """Stacks per-session metric histories, filling the template's row (None) with NaN."""
+    done = [m for m in metrics if m is not None]
+    n_metrics = len(done[0]) if done else 0
+    return np.array(
+        [np.full(n_metrics, np.nan) if m is None else m for m in metrics], dtype=float
+    )
 
 
 def find_flips(cov, template_cov, n_embeddings, method="sdp", **kwargs):
@@ -56,10 +75,7 @@ def find_flips(cov, template_cov, n_embeddings, method="sdp", **kwargs):
         Evaluation metric (correlation between covariance matrices). The first entry is
         before flipping and the last entry is that of the returned flips.
     """
-    if method not in _SOLVERS:
-        raise ValueError(
-            f"Invalid method '{method}'. Must be one of {', '.join(map(repr, METHODS))}."
-        )
+    _check_method(method)
     return _SOLVERS[method](cov, template_cov, n_embeddings, **kwargs)
 
 
@@ -94,15 +110,19 @@ def align_signs(
     n_embeddings,
     method="sdp",
     template=None,
+    template_cov=None,
     standardize_data=True,
-    use_tqdm=False,
+    apply=False,
+    n_jobs=1,
+    use_tqdm=True,
     **kwargs,
 ):
     """Aligns the signs of a group of sessions to a common template.
 
     This computes the time-delay-embedded covariance of each session, selects a template
     session (unless one is given), and finds the flips that best align every other session
-    to it.
+    to it. For parcellated data stored in ``.fif`` files, see
+    :func:`osl_signflip.io.sign_flip_files`.
 
     Parameters
     ----------
@@ -113,11 +133,20 @@ def align_signs(
         Number of time-delay embeddings. Must be odd.
     method : str, optional
         Sign-flipping method. See :func:`find_flips`.
-    template : int, optional
-        Index of the template session in ``data``. If ``None``, the template is selected
-        with :func:`~osl_signflip.find_template`.
+    template : int or numpy.ndarray, optional
+        The template to align to. Either the index of a session in ``data``, or the
+        (n_samples, n_channels) time series of a template session that is not in
+        ``data``. If ``None`` (and ``template_cov`` is not given), the template is
+        selected from ``data`` with :func:`~osl_signflip.find_template`.
+    template_cov : numpy.ndarray, optional
+        Precomputed covariance of a template session, as an alternative to ``template``.
+        Shape must be (n_channels * n_embeddings, n_channels * n_embeddings).
     standardize_data : bool, optional
         Should we standardize the embedded data before computing the covariances?
+    apply : bool, optional
+        Should we also return the sign-flipped data?
+    n_jobs : int, optional
+        Number of parallel worker processes. ``-1`` uses all CPU cores.
     use_tqdm : bool, optional
         Should we display a tqdm progress bar?
     **kwargs
@@ -126,49 +155,68 @@ def align_signs(
     Returns
     -------
     flips : numpy.ndarray
-        Flips for each session. Shape is (n_sessions, n_channels). The template session's
-        flips are all 1s.
+        Flips for each session. Shape is (n_sessions, n_channels). If the template is a
+        session in ``data``, its flips are all 1s.
     metrics : numpy.ndarray
         Evaluation metric history for each session. Shape is (n_sessions, n_metrics), where
-        ``n_metrics`` depends on the method (see :func:`find_flips`). The template session's
-        row is ``NaN``.
-    template : int
-        Index of the template session.
+        ``n_metrics`` depends on the method (see :func:`find_flips`). If the template is a
+        session in ``data``, its row is ``NaN``.
+    template : int or None
+        Index of the template session in ``data``, or ``None`` if the template is not
+        one of the sessions in ``data``.
+    data_flipped : list of numpy.ndarray
+        Sign-flipped time series for each session. Only returned if ``apply=True``.
     """
-    # Validate the designated method
-    if method not in _SOLVERS:
-        raise ValueError(
-            f"Invalid method '{method}'. Must be one of {', '.join(map(repr, METHODS))}."
-        )
+    _check_method(method)
+    if method == "random":
+        # Show one overall progress bar, not one per session from each worker
+        kwargs.setdefault("use_tqdm", False)
+    if template is not None and template_cov is not None:
+        raise ValueError("Pass either template or template_cov, not both.")
 
-    covs = compute_covariances(data, n_embeddings, standardize_data, use_tqdm=use_tqdm)
+    # Compute the covariance of each session
+    covs = compute_covariances(
+        data, n_embeddings, standardize_data, n_jobs=n_jobs, use_tqdm=use_tqdm
+    )
     n_sessions = len(covs)
     n_channels = covs.shape[-1] // n_embeddings
 
-    # Find the template session
-    if template is None:
-        template = find_template(covs, diag_offset=n_embeddings, use_tqdm=use_tqdm)
-    template = int(template)
-    if not 0 <= template < n_sessions:
-        raise ValueError(
-            f"template must be an index in [0, {n_sessions}), got {template}."
-        )
-    logger.info(f"using template: {template}")
+    # Find the template
+    template_index = None
+    if template_cov is None:
+        if template is None:
+            template_index = find_template(
+                covs, diag_offset=n_embeddings, use_tqdm=use_tqdm
+            )
+        elif np.ndim(template) == 0:
+            template_index = int(template)
+            if not 0 <= template_index < n_sessions:
+                raise ValueError(
+                    f"template must be an index in [0, {n_sessions}), got {template}."
+                )
+        else:
+            template_cov = compute_covariance(template, n_embeddings, standardize_data)
+    if template_index is not None:
+        template_cov = covs[template_index]
+        logger.info(f"using template: {template_index}")
 
     # Find sign flip solutions and compute corresponding metric values
+    # (the template session, if in data, is not flipped against itself)
+    todo = [i for i in range(n_sessions) if i != template_index]
+    results = parallel_map(
+        partial(find_flips, method=method, **kwargs),
+        [(covs[i], template_cov, n_embeddings) for i in todo],
+        n_jobs=n_jobs,
+        desc="Sign flipping",
+        use_tqdm=use_tqdm,
+    )
     flips = np.ones((n_sessions, n_channels))
     metrics = [None] * n_sessions
-    for i in range(n_sessions):
-        if i == template:
-            continue
-        flips[i], metrics[i] = find_flips(
-            covs[i], covs[template], n_embeddings, method=method, **kwargs
-        )
+    for i, (f, m) in zip(todo, results):
+        flips[i], metrics[i] = f, m
+    metrics = _stack_metrics(metrics)
 
-    # The template is not flipped against itself; fill its metric row with NaN
-    n_metrics = len(next(m for m in metrics if m is not None)) if n_sessions > 1 else 0
-    metrics = np.array(
-        [np.full(n_metrics, np.nan) if m is None else m for m in metrics], dtype=float
-    )
-
-    return flips, metrics, template
+    if apply:
+        data_flipped = [apply_flips(x, f) for x, f in zip(data, flips)]
+        return flips, metrics, template_index, data_flipped
+    return flips, metrics, template_index

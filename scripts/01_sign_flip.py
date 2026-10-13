@@ -1,16 +1,25 @@
-"""Apply dipole sign flipping on the source space data."""
+"""Apply dipole sign flipping on the source space data.
+
+For each session, this script (i) computes the time-delay-embedded (TDE) covariance of the
+parcellated data, (ii) finds the sign flips that best align it to a template session with
+``osl-signflip``, (iii) saves the sign-flipped parcel time courses, and (iv) records the
+before/after metrics in the session's report data (read by ``02_collect_results.py``).
+
+Env: ``osld`` (with ``osl-signflip`` installed)
+Usage:
+    python 01_sign_flip.py <dataset> <method> [--template SESSION] [--n-workers N]
+"""
 
 # Install dependencies
 import argparse
 import os
-import yaml
-from dask.distributed import Client
+import pickle
 from glob import glob
-from osl_ephys import source_recon, utils
+
+from osl_signflip import io as sf_io
 
 # Set directories
 BASE_DIR = "/well/woolrich/users/olt015/osl-signflip"
-FSL_DIR = "/well/woolrich/projects/software/fsl"
 
 # Set hyperparameters
 COMMON_PARAMS = {
@@ -64,35 +73,25 @@ def parse_args():
         "--n-workers",
         type=int,
         default=16,
-        help="Number of Dask workers for parallel processing (default: 16).",
+        help="Number of parallel workers (default: 16).",
     )
     return parser.parse_args()
 
-# Define a configuration builder
-def build_config(sign_flipping_method, template):
+# Define helper functions
+def add_to_report(report_file, info):
     """
-    Builds the osl-ephys source_recon config for the given method.
-    
-    Parameters
-    ----------
-    sign_flipping_method : str
-        The sign flipping method to use.
-    template : str
-        The session ID to use as the target alignment template.
-
-    Returns
-    -------
-    config : str
-        The YAML configuration for the osl-ephys source_recon.
+    Adds info to a session's report data, keeping the entries already there
+    (e.g., from source reconstruction), as osl-ephys's ``src_report.add_to_data`` does.
     """
-    fix_sign_ambiguity = {
-        "method": sign_flipping_method,
-        "template": template,
-        **COMMON_PARAMS,
-        **METHOD_PARAMS[sign_flipping_method],
-    }
-    config = {"source_recon": [{"fix_sign_ambiguity": fix_sign_ambiguity}]}
-    return yaml.dump(config, sort_keys=False)
+    data = {}
+    if os.path.exists(report_file):
+        with open(report_file, "rb") as fh:
+            data = pickle.load(fh)
+    else:
+        os.makedirs(os.path.dirname(report_file), exist_ok=True)
+    data.update(info)
+    with open(report_file, "wb") as fh:
+        pickle.dump(data, fh)
 
 
 # SIGN FLIP DATA
@@ -104,38 +103,51 @@ if __name__ == "__main__":
     template = args.template
     print(f"[INFO] Dataset: {dataset} | Sign flipping method: {sign_flipping_method}")
 
-    # Set logger
-    utils.logger.set_up(level="INFO")
-
-    # Set up FSL
-    source_recon.setup_fsl(FSL_DIR)
-
     # Get session IDs
     src_dir = os.path.join(BASE_DIR, f"{dataset}/src_{sign_flipping_method}")
     file_paths = sorted(glob(os.path.join(src_dir, "*/parc/lcmv-parc-raw.fif")))
     session_ids = [file.split("/")[-3] for file in file_paths]
     print(f"[INFO] Number of available sessions: {len(session_ids)}")
 
-    # Find a good template session to align other sessions to
-    if template is None:
-        template = source_recon.find_template_subject(
-            src_dir, session_ids, n_embeddings=15, standardize=True
-        )
-    print(f"[INFO] Using session {template} as the template.")
+    # Set the template session (if omitted, a good template is found automatically)
+    if template is not None and template not in session_ids:
+        raise ValueError(f"Template session {template} not found in {src_dir}.")
 
-    # Configure pipeline
-    config = build_config(sign_flipping_method, template)
-
-    # Set up parallel processing
-    client = Client(n_workers=args.n_workers, threads_per_worker=1)
-
-    # Perform sign flipping
-    source_recon.run_src_batch(
-        config,
-        outdir=src_dir,
-        subjects=session_ids,
-        dask_client=True,
-        random_seed=0,
+    # Find and apply the sign flips, and save the sign-flipped data
+    out_paths = [
+        os.path.join(src_dir, session, f"{session}_sflip_lcmv-parc-raw.fif")
+        for session in session_ids
+    ]
+    flips, metrics, template_index = sf_io.sign_flip_files(
+        file_paths,
+        out_paths,
+        n_embeddings=COMMON_PARAMS["n_embeddings"],
+        method=sign_flipping_method,
+        template=None if template is None else session_ids.index(template),
+        standardize_data=COMMON_PARAMS["standardize"],
+        n_jobs=args.n_workers,
+        **METHOD_PARAMS[sign_flipping_method],
     )
+    template = session_ids[template_index]
+    print(f"[INFO] Used session {template} as the template.")
+
+    # Print metrics before and after sign flipping
+    # (the template is not flipped against itself, so its metrics are NaN)
+    for session, session_metrics in zip(session_ids, metrics):
+        add_to_report(
+            os.path.join(src_dir, "src_report", session, "data.pkl"),
+            {
+                "fix_sign_ambiguity": True,
+                "method": sign_flipping_method,
+                "template": template,
+                **COMMON_PARAMS,
+                **METHOD_PARAMS[sign_flipping_method],
+                "metrics": session_metrics,
+            },
+        )  # save info for the report
+        print(
+            f"\t{session}: metric before {session_metrics[0]:.4f}, "
+            f"after {session_metrics[-1]:.4f}"
+        )
 
     print("Sign flipping complete.")
