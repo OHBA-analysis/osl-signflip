@@ -47,13 +47,6 @@ pip install osl-signflip            # core (NumPy, tqdm, and joblib only)
 pip install "osl-signflip[mne]"     # + helpers for MNE-Python Raw/Epochs and .fif files
 ```
 
-To install `osl-signflip` in a fresh conda environment:
-
-```bash
-conda create -n oslsf python=3.12
-conda activate oslsf && pip install osl-signflip
-```
-
 To install it from source instead (e.g., for development):
 
 ```bash
