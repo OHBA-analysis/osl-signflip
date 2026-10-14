@@ -12,13 +12,17 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "SungJun Cho", email = "sungjun.cho@ndcn.ox.ac.uk" }]
 keywords = [
+    "neuroscience",
+    "neuroimagin",
     "MEG",
     "EEG",
+    "electrophysiology",
     "source reconstruction",
     "dipole sign ambiguity",
     "sign flipping",
     "Z2 synchronization",
     "semidefinite programming",
+    "belief propagation",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
