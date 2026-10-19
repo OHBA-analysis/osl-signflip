@@ -13,6 +13,7 @@
 - [Overview](#-overview)
 - [Installation](#-installation)
 - [Quick Start](#️-quick-start)
+- [Tutorial](#-tutorial)
 - [A Note on the Global Sign](#-a-note-on-the-global-sign)
 - [Reproducing the Paper](#-reproducing-the-paper)
 - [Citation](#-citation)
@@ -96,6 +97,16 @@ flips, metrics, template = io.sign_flip_files(
 
 Here, `template=` can be the index of an input file or the path to any template file.
 
+## 📚 Tutorial
+
+The [sign-flipping tutorial](https://github.com/OHBA-analysis/osl-signflip/blob/main/tutorials/sign_flipping_tutorial.ipynb) demonstrates the complete workflow using parcellated MEG data from the Wakeman–Henson dataset, which is downloaded automatically.
+
+The tutorial covers:
+
+1. **Sign flipping:** Apply all four methods using `align_signs()` and `io.sign_flip_files()`.
+2. **Performance evaluation:** Compare alignment quality and agreement across methods.
+3. **Runtime benchmarking:** Evaluate the computational efficiency of each method.
+
 ## 🧭 A Note on the Global Sign
 
 Sign-flipping uses covariances, which cannot distinguish a flip vector `f` from its global negation `-f`
@@ -113,7 +124,3 @@ requirements and instructions.
 
 If you use `osl-signflip`, please cite the accompanying paper (citation to be added). Citation metadata is also
 available in [`CITATION.cff`](https://github.com/OHBA-analysis/osl-signflip/blob/main/CITATION.cff).
-
-## 🪪 License
-
-Copyright (c) 2026 [SungJun Cho](https://github.com/scho97) and [OHBA Analysis Group](https://github.com/OHBA-analysis). `osl-signflip` is a free and open-source software licensed under the [MIT License](https://github.com/OHBA-analysis/osl-signflip/blob/main/LICENSE).
