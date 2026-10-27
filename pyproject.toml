@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "SungJun Cho", email = "sungjun.cho@ndcn.ox.ac.uk" }]
 keywords = [
     "neuroscience",
-    "neuroimagin",
+    "neuroimaging",
     "MEG",
     "EEG",
     "electrophysiology",
