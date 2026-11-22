@@ -4,7 +4,7 @@ Reads the per-dataset dynamic features saved by ``07_dynamic_features.py``
 (``dynamic_results.npz`` + ``dynamic_features.npz``) and writes into the top-level
 ``figures/``:
 
-    * ``fig5_dynamics``              -- Cam-CAN: Dice between state time courses, per-session Dice
+    * ``fig6_dynamics``              -- Cam-CAN: Dice between state time courses, per-session Dice
                                         with SDP, inter-method state TDE-covariance similarity, and
                                         per-state summary statistics (fractional occupancy / lifetime
                                         / switching rate) across methods.
@@ -221,12 +221,12 @@ def draw_grouped_bars(ax, feats, stat, ylabel, p_holm=None):
 
 
 # ------------------------------------------
-# Figures (includes Fig. 5, S6, S7, Table 1)
+# Figures (includes Fig. 6, S6, S7, Table 1)
 # ------------------------------------------
 
-def fig5_dynamics(R, rng):
+def fig6_dynamics(R, rng):
     """
-    Figure 5: Preservation of dynamics across sign-flipping methods.
+    Figure 6: Preservation of dynamics across sign-flipping methods.
 
     Uses all sessions (including template), and states are matched to SDP.
     """
@@ -252,7 +252,7 @@ def fig5_dynamics(R, rng):
     for ax, tag in zip(axes.ravel(), "abcdef"):
         ut.panel_tag(ax, tag, dx=-0.05, dy=1.07)
     fig.tight_layout(rect=[0, 0, 1, 0.96], w_pad=0.3, h_pad=2.2)
-    ut.save_fig(fig, "fig5_dynamics")
+    ut.save_fig(fig, "fig6_dynamics")
 
 
 def figS6_hmm_networks(R):
@@ -405,7 +405,7 @@ if __name__ == "__main__":
     primary_data = data[ut.PRIMARY]  # CamCAN-only
 
     # Generate figures
-    fig5_dynamics(primary_data, rng)
+    fig6_dynamics(primary_data, rng)
     figS6_hmm_networks(primary_data)
     tableS1_dynamic_invariance(data)
     figS7_obs_cov(primary_data)

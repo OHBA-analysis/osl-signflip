@@ -3,14 +3,14 @@
 Reads ``<dataset>/data/analysis_results.npz`` (from ``02_collect_results.py``)
 for every dataset and writes the following into the top-level ``figures/``:
 
-    * ``fig1_performance``      -- Sign-flipping performance in Cam-CAN: metric distribution,
+    * ``fig2_performance``      -- Sign-flipping performance in Cam-CAN: metric distribution,
                                    per-session, paired SDP advantage, and cross-dataset SDP
                                    performance.
-    * ``fig2_flip_decisions``   -- Cam-CAN flip decisions: agreement matrix, per-parcel
+    * ``fig3_flip_decisions``   -- Cam-CAN flip decisions: agreement matrix, per-parcel
                                    disagreement, agreement with the 4-method consensus.
-    * ``figS1_performance``     -- Fig 1a-c reproduced on LEMON and Wakeman-Henson.
+    * ``figS1_performance``     -- Fig 2a-c reproduced on LEMON and Wakeman-Henson.
     * ``figS2_sign_flip_curve`` -- Before and four after-flip curves, one row per dataset.
-    * ``figS3_flip_decisions``  -- Fig 2 reproduced on LEMON and Wakeman-Henson.
+    * ``figS3_flip_decisions``  -- Fig 3 reproduced on LEMON and Wakeman-Henson.
 
 Env: ``osld`` (or any env with numpy/scipy/matplotlib).
 Usage:
@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt  # utils sets the Agg backend on import
 def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
     """
     After-flip metric distribution per method: box + jitter + mean diamond
-    (Fig 1a, S1a, S1d).
+    (Fig 2a, S1a, S1d).
 
     If ``friedman`` (a dict from ``utils.friedman_omnibus``) is passed, the omnibus
     result is reported in an inset box on the right: upper corner by default, or
@@ -75,7 +75,7 @@ def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
 def draw_per_session_sorted(ax, D, midx):
     """
     Per-session metric, with sessions sorted by the SDP value (one line per method)
-    (Fig 1b, S1b, S1e).
+    (Fig 2b, S1b, S1e).
     """
     after = D["after"]
     n = after.shape[0]
@@ -93,7 +93,7 @@ def draw_per_session_sorted(ax, D, midx):
 
 def draw_paired_comparison(ax, D, midx, rng):
     """
-    Paired SDP advantage vs other algorithms (Fig 1c, S1c, S1f).
+    Paired SDP advantage vs other algorithms (Fig 2c, S1c, S1f).
 
     The figure reports Holm-corrected Wilcoxon + effect size.
     """
@@ -130,7 +130,7 @@ def draw_paired_comparison(ax, D, midx, rng):
 
 
 def draw_cross_dataset_sdp(ax, data, rng):
-    """SDP per-session metric as one box per dataset (Fig 1d)."""
+    """SDP per-session metric as one box per dataset (Fig 2d)."""
     n_sessions = []
     for i, ds in enumerate(ut.ALL_DATASETS):
         D, midx = data[ds]
@@ -171,7 +171,7 @@ def draw_sign_flip_curve(ax, D, midx):
 def draw_agreement(ax, D, midx):
     """
     Flip-decision agreement matrix (fraction of parcels, up to a global sign)
-    (Fig 2a, S3a, S3d).
+    (Fig 3a, S3a, S3d).
     """
     idx = [midx[m] for m in ut.DISPLAY]
     A = D["agreement"][np.ix_(idx, idx)]
@@ -193,7 +193,7 @@ def draw_agreement(ax, D, midx):
 def draw_parcel_disagreement(ax, D):
     """
     Per-parcel disagreement rate across methods (parcels sorted, descending)
-    (Fig 2b, S3b, S3e).
+    (Fig 3b, S3b, S3e).
     """
     pd = D["parcel_disagreement"]
     order = np.argsort(-pd)
@@ -207,7 +207,7 @@ def draw_parcel_disagreement(ax, D):
 def draw_consensus(ax, D, midx, rng):
     """
     Per-method agreement with the 4-method consensus (box + jitter)
-    (Fig 2c, S3c, S3f).
+    (Fig 3c, S3c, S3f).
     """
     cons = D["consensus_agreement"]
     n = cons.shape[0]
@@ -227,11 +227,11 @@ def draw_consensus(ax, D, midx, rng):
 
 
 # ----------------------------------------
-# Figures (includes Fig. 1, 3, S1, S2, S3)
+# Figures (includes Fig. 2, 3, S1, S2, S3)
 # ----------------------------------------
 
-def fig1_performance(data, rng):
-    """Figure 1: Cam-CAN sign-flipping performance (a-c) + cross-dataset SDP metrics (d)."""
+def fig2_performance(data, rng):
+    """Figure 2: Cam-CAN sign-flipping performance (a-c) + cross-dataset SDP metrics (d)."""
     # Load data and run Friedman test
     D, midx = data[ut.PRIMARY]
     fr = ut.friedman_omnibus(D["after"], midx)
@@ -247,11 +247,11 @@ def fig1_performance(data, rng):
     for ax, tag in zip(axes.ravel(), "abcd"):
         ut.panel_tag(ax, tag)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
-    ut.save_fig(fig, "fig1_performance")
+    ut.save_fig(fig, "fig2_performance")
 
 
-def fig2_flip_decisions(data, rng):
-    """Figure 2: Cam-CAN flip-decision agreement, disagreement, consensus."""
+def fig3_flip_decisions(data, rng):
+    """Figure 3: Cam-CAN flip-decision agreement, disagreement, consensus."""
     # Load data
     D, midx = data[ut.PRIMARY]
 
@@ -265,11 +265,11 @@ def fig2_flip_decisions(data, rng):
     for ax, tag in zip(axes, "abc"):
         ut.panel_tag(ax, tag)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
-    ut.save_fig(fig, "fig2_flip_decisions")
+    ut.save_fig(fig, "fig3_flip_decisions")
 
 
 def figS1_performance(data, rng):
-    """Figure S1: Fig 1a-c reproduced on the two other datasets."""
+    """Figure S1: Fig 2a-c reproduced on the two other datasets."""
     # Plot figures
     fig, axes = plt.subplots(len(ut.REPRO), 3, figsize=(11, 3.4 * len(ut.REPRO)))
     for r, ds in enumerate(ut.REPRO):
@@ -309,7 +309,7 @@ def figS2_sign_flip_curve(data):
 
 
 def figS3_flip_decisions(data, rng):
-    """Figure S3: Fig 2 reproduced on the two other datasets."""
+    """Figure S3: Fig 3 reproduced on the two other datasets."""
     # Plot figures
     fig, axes = plt.subplots(len(ut.REPRO), 3, figsize=(11, 3.6 * len(ut.REPRO)))
     for r, ds in enumerate(ut.REPRO):
@@ -339,8 +339,8 @@ if __name__ == "__main__":
               f"{int(D['n_parcels'])} parcels")
 
     # Generate figures
-    fig1_performance(data, rng)
-    fig2_flip_decisions(data, rng)
+    fig2_performance(data, rng)
+    fig3_flip_decisions(data, rng)
     figS1_performance(data, rng)
     figS2_sign_flip_curve(data)
     figS3_flip_decisions(data, rng)

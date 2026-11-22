@@ -3,9 +3,9 @@
 Aggregates the per-method features saved by ``04_static_analysis.py`` (run once
 per dataset x method) for every dataset and writes into the top-level ``figures/``:
 
-    * ``fig4_tde_covariance``     -- Cam-CAN TDE covariance: the group-level matrix before
+    * ``fig5_tde_covariance``     -- Cam-CAN TDE covariance: the group-level matrix before
                                      vs. after flipping and the inter-method similarity.
-    * ``figS4_tde_covariance``    -- Fig 4 reproduced on LEMON and Wakeman-Henson.
+    * ``figS4_tde_covariance``    -- Fig 5 reproduced on LEMON and Wakeman-Henson.
     * ``figS5_static_invariance`` -- sign-invariant static features (PSD, AEC) are identical
                                      across methods (max |method - SDP| ~ machine precision),
                                      one row per dataset.
@@ -14,10 +14,10 @@ The sign-invariant features (PSD/power/AEC) are for quality control (QC), showin
 sign flipping preserves standard static metrics; only the TDE covariance is sign-sensitive,
 so the method comparison runs on that.
 
-NOTE (interpretation): Fig 4 is a qualitative display of the *optimized* object (the group
+NOTE (interpretation): Fig 5 is a qualitative display of the *optimized* object (the group
 TDE covariance) and its cross-method agreement -- NOT independent downstream validation. The
 independent evidence that the solver choice does not distort the science comes from the
-dynamic analysis (Fig 5).
+dynamic analysis (Fig 6).
 
 Env: ``osld`` (or any env with numpy/scipy/matplotlib)
 Usage:
@@ -199,13 +199,13 @@ def draw_feature_deviation(ax, S):
 
 
 # ---------------------------------
-# Figures (includes Fig. 4, S4, S5)
+# Figures (includes Fig. 5, S4, S5)
 # ---------------------------------
 
 def _tde_block(fig, axes, S, v):
     """
     Fills a 2x2 panel block for one dataset's TDE-covariance figure
-    (used for Fig 4 and S4).
+    (used for Fig 5 and S4).
 
     Panels:
         [0, 0] After Random Flipping   [0, 1] After SDP Flipping
@@ -233,8 +233,8 @@ def _tde_block(fig, axes, S, v):
         a.set_box_aspect(1)  # square, equal-sized panels
 
 
-def fig4_tde(data, v):
-    """Figure 4: Cam-CAN TDE covariance matrices and inter-method similarity."""
+def fig5_tde(data, v):
+    """Figure 5: Cam-CAN TDE covariance matrices and inter-method similarity."""
     # Plot figures
     S = data[ut.PRIMARY]
     fig, axes = plt.subplots(2, 2, figsize=(7.6, 7.2), constrained_layout=True)
@@ -243,11 +243,11 @@ def fig4_tde(data, v):
     # Axis settings
     for ax, tag in zip(axes.ravel(), "abcd"):
         ut.panel_tag(ax, tag)
-    ut.save_fig(fig, "fig4_tde_covariance")
+    ut.save_fig(fig, "fig5_tde_covariance")
 
 
 def figS4_tde(data, v):
-    """Figure S4: Fig 4 reproduced on the two other datasets."""
+    """Figure S4: Fig 5 reproduced on the two other datasets."""
     # Plot figures
     fig, axes = plt.subplots(
         2 * len(ut.REPRO), 2,
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     v = max(tde_vmax(val) for val in data.values())
 
     # Generate figures
-    fig4_tde(data, v)
+    fig5_tde(data, v)
     figS4_tde(data, v)
     figS5_invariance(data)
     print("[INFO] Visualization complete.")
