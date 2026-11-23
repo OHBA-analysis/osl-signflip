@@ -6,13 +6,8 @@ per dataset x method) for every dataset and writes into the top-level ``figures/
     * ``fig5_tde_covariance``     -- Cam-CAN TDE covariance: the group-level matrix before
                                      vs. after flipping and the inter-method similarity.
     * ``figS4_tde_covariance``    -- Fig 5 reproduced on LEMON and Wakeman-Henson.
-    * ``figS5_static_invariance`` -- sign-invariant static features (PSD, AEC) are identical
-                                     across methods (max |method - SDP| ~ machine precision),
-                                     one row per dataset.
 
-The sign-invariant features (PSD/power/AEC) are for quality control (QC), showing that
-sign flipping preserves standard static metrics; only the TDE covariance is sign-sensitive,
-so the method comparison runs on that.
+The TDE covariance is sign-sensitive, so the method comparison runs on that.
 
 NOTE (interpretation): Fig 5 is a qualitative display of the *optimized* object (the group
 TDE covariance) and its cross-method agreement -- NOT independent downstream validation. The
@@ -38,9 +33,8 @@ def load_static_features(dataset):
     """
     Loads each method's static features for a specified dataset, session-aligned.
 
-    Returns a dict with a name->column map ``midx``, the invariance QC deviations,
-    the inter-method group-covariance similarity, the group TDE matrices (per method
-    + before-flip), and the sign-invariant group features for the invariance panels.
+    Returns a dict with a name->column map ``midx``, the inter-method group-covariance
+    similarity, and the group TDE matrices (per method + before-flip).
     """
     # Load static features
     features = {}
@@ -54,19 +48,11 @@ def load_static_features(dataset):
     sess = {m: features[m]["sessions"].tolist() for m in ut.METHODS}
     common = set.intersection(*[set(sess[m]) for m in ut.METHODS])
     sessions = [s for s in sess["sdp"] if s in common]
-    pos = {m: {s: i for i, s in enumerate(sess[m])} for m in ut.METHODS}
-    order = {m: [pos[m][s] for s in sessions] for m in ut.METHODS}
 
     # Get data dimensions and metadata
     C = int(features["sdp"]["n_parcels"])
     n_emb = int(features["sdp"]["n_embeddings"])
     midx = {m: i for i, m in enumerate(ut.METHODS)}
-
-    # Invariance QC (max |method - SDP| over sessions for the sign-invariant features)
-    qc = {}
-    for feat in ["psd", "power", "aec"]:
-        st = {m: features[m][feat][order[m]] for m in ut.METHODS}
-        qc[feat] = max(np.abs(st[m] - st["sdp"]).max() for m in ut.METHODS)
 
     # Inter-method similarity of the group TDE covariance (cross-parcel entries only)
     mask = ut.cross_parcel_triu(C, n_emb)
@@ -82,12 +68,9 @@ def load_static_features(dataset):
         "n": len(sessions),
         "C": C, "n_emb": n_emb,
         "template": str(features["sdp"]["template"]),
-        "midx": midx, "qc": qc, "inter": inter,
+        "midx": midx, "inter": inter,
         "tde_group": {m: features[m]["tde_group"] for m in ut.METHODS},
         "tde_group_before": features["sdp"].get("tde_group_before"),
-        "psd_group": {m: features[m]["psd_group"] for m in ut.METHODS},
-        "aec_group": features["sdp"]["aec_group"],
-        "f": features["sdp"]["f"],
     }
     # NOTE: `tde_group_before` is identical across all methods.
 
@@ -146,61 +129,9 @@ def draw_sim_matrix(ax, S, cbar="right"):
                            label="Pearson correlation")
 
 
-def draw_psd(ax, S):
-    """Group-level PSD for the four methods overlaid."""
-    for m in ut.DISPLAY:
-        ax.plot(
-            S["f"], S["psd_group"][m].mean(0),
-            color=ut.COLORS[m], lw=1.6, alpha=0.8, label=ut.LABELS[m],
-        )
-    ax.set_xlabel("Frequency (Hz)")
-    ax.set_ylabel("PSD (a.u.)")
-    ax.set_title("Group-level PSD")
-    ax.legend(frameon=False, ncol=2)
-
-
-def draw_aec(ax, S):
-    """
-    Group AEC connectivity matrix (SDP shown, diagonal blanked).
-
-    The diagonal (self-connection = 1) is set to NaN and the colour scale is
-    rescaled to the off-diagonal range, so the off-diagonal pattern is visible.
-    Group AEC should ideally be identical across methods.
-    """
-    A = np.array(S["aec_group"], dtype=float).copy()
-    np.fill_diagonal(A, np.nan)
-    v = float(np.nanpercentile(np.abs(A), 99))
-    im = ax.imshow(A, cmap="RdBu_r", vmin=-v, vmax=v)
-    ticks = np.linspace(0, A.shape[0] - 1, 5).round().astype(int)
-    ax.set_xticks(ticks); ax.set_xticklabels(ticks + 1)
-    ax.set_yticks(ticks); ax.set_yticklabels(ticks + 1)
-    ax.set_xlabel("Parcel"); ax.set_ylabel("Parcel")
-    ax.set_title("Group-level AEC (for SDP)")
-    ax.set_anchor("W")  # left-justify the plot
-    cax = make_axes_locatable(ax).append_axes("right", size="4%", pad=0.05)
-    ax.figure.colorbar(im, cax=cax)
-
-
-def draw_feature_deviation(ax, S):
-    """Max |method - SDP| for the sign-invariant features (log scale)."""
-    feats = ["psd", "power", "aec"]  # keys into S["qc"]
-    labels = ["PSD", "Power", "AEC"]  # display labels
-    vals = [max(S["qc"][fe], 1e-20) for fe in feats]
-    x = np.arange(len(feats))
-    ax.bar(x, vals, color="#888888")
-    ax.set_xticks(x); ax.set_xticklabels(labels)
-    ax.set_yscale("log")
-    ax.axhline(np.finfo(np.float32).eps, ls="--", color="k", lw=1, label="float32 eps")
-    ax.set_ylabel("max(|Method - SDP|)")
-    ax.set_title("Cross-method Deviation")
-    ax.legend(frameon=False)
-    for i, fe in enumerate(feats):
-        ax.text(i, vals[i], f"{S['qc'][fe]:.0e}", ha="center", va="bottom", fontsize=6.5)
-
-
-# ---------------------------------
-# Figures (includes Fig. 5, S4, S5)
-# ---------------------------------
+# -----------------------------
+# Figures (includes Fig. 5, S4)
+# -----------------------------
 
 def _tde_block(fig, axes, S, v):
     """
@@ -263,25 +194,6 @@ def figS4_tde(data, v):
     ut.save_fig(fig, "figS4_tde_covariance")
 
 
-def figS5_invariance(data):
-    """Figure S5: Sign-invariant features across methods, one row per dataset."""
-    # Plot figures
-    fig, axes = plt.subplots(len(ut.ALL_DATASETS), 3, figsize=(11, 3.2 * len(ut.ALL_DATASETS)))
-    for di, ds in enumerate(ut.ALL_DATASETS):
-        S = data[ds]
-        draw_psd(axes[di, 0], S)
-        draw_aec(axes[di, 1], S)
-        draw_feature_deviation(axes[di, 2], S)
-        axes[di, 0].set_ylabel(f"{ut.DATASET_LABELS[ds]}\nPSD (a.u.)")
-
-    # Axis settings
-    for ax, tag in zip(axes.ravel(), "abcdefghi"):
-        ut.panel_tag(ax, tag)
-    fig.suptitle("Static Feature Invariance to the Sign-Flipping Method", fontsize=9, y=1.0)
-    fig.tight_layout(rect=[0, 0, 1, 0.98])
-    ut.save_fig(fig, "figS5_static_invariance")
-
-
 if __name__ == "__main__":
     # Set visual style
     ut.set_style()  # set plot style
@@ -291,8 +203,6 @@ if __name__ == "__main__":
     for ds in ut.ALL_DATASETS:
         S = data[ds]
         print(f"[INFO] {ds}: n = {S['n']}, {S['C']} parcels")
-        for feat in ["psd", "power", "aec"]:
-            print(f"\tinvariance QC {feat:<6} max|method-SDP| = {S['qc'][feat]:.2e}")
 
     # Get a limit for unified TDE-covariance color scale across datasets
     v = max(tde_vmax(val) for val in data.values())
@@ -300,5 +210,4 @@ if __name__ == "__main__":
     # Generate figures
     fig5_tde(data, v)
     figS4_tde(data, v)
-    figS5_invariance(data)
     print("[INFO] Visualization complete.")

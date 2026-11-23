@@ -8,12 +8,12 @@ Reads the per-dataset dynamic features saved by ``07_dynamic_features.py``
                                         with SDP, inter-method state TDE-covariance similarity, and
                                         per-state summary statistics (fractional occupancy / lifetime
                                         / switching rate) across methods.
-    * ``figS6_hmm_networks``         -- Cam-CAN SDP HMM networks: per-state PSD, power, and
+    * ``figS5_hmm_networks``         -- Cam-CAN SDP HMM networks: per-state PSD, power, and
                                         coherence.
     * ``tableS1_dynamic_invariance`` -- inter-method similarity (correlation with SDP) of state
                                         PSD, power, coherence, and transition probabilities,
                                         written as a Markdown table.
-    * ``figS7_obs_cov``              -- Cam-CAN observation-model state covariances per method
+    * ``figS6_obs_cov``              -- Cam-CAN observation-model state covariances per method
                                         (qualitative; each method has its own PCA basis).
 
 Note that these figures use the primary dataset (Cam-CAN) and that dynamic features were
@@ -255,9 +255,9 @@ def fig6_dynamics(R, rng):
     ut.save_fig(fig, "fig6_dynamics")
 
 
-def figS6_hmm_networks(R):
+def figS5_hmm_networks(R):
     """
-    Figure S6: HMM network profiles for SDP sign-flipped data.
+    Figure S5: HMM network profiles for SDP sign-flipped data.
 
     Includes state-specific PSDs (mean ± sd), power maps, and FC coherence networks.
     The glass brains are rendered here, so the panels and colorbars can be sized
@@ -305,7 +305,7 @@ def figS6_hmm_networks(R):
         f"Group-level HMM Networks for {ut.DATASET_LABELS[ds]} (with SDP sign-flipping)",
         fontsize=9, y=0.985,
     )
-    ut.save_fig(fig, "figS6_hmm_networks")
+    ut.save_fig(fig, "figS5_hmm_networks")
 
 
 def tableS1_dynamic_invariance(data):
@@ -345,9 +345,9 @@ def tableS1_dynamic_invariance(data):
     print(f"[INFO] Saved {out}.")
 
 
-def figS7_obs_cov(R):
+def figS6_obs_cov(R):
     """
-    Figure S7: Observation model state covariances per method (blanked diagonals).
+    Figure S6: Observation model state covariances per method (blanked diagonals).
 
     Each state (column) has its own symmetric color scale, shared across the four methods
     (rows), so low-amplitude states are not washed out by the high-amplitude ones.
@@ -392,7 +392,7 @@ def figS7_obs_cov(R):
         cbar.update_ticks()
         cbar.ax.tick_params(labelsize=8)
         cbar.ax.xaxis.get_offset_text().set_fontsize(8)
-    ut.save_fig(fig, "figS7_obs_cov")
+    ut.save_fig(fig, "figS6_obs_cov")
 
 
 if __name__ == "__main__":
@@ -406,7 +406,7 @@ if __name__ == "__main__":
 
     # Generate figures
     fig6_dynamics(primary_data, rng)
-    figS6_hmm_networks(primary_data)
+    figS5_hmm_networks(primary_data)
     tableS1_dynamic_invariance(data)
-    figS7_obs_cov(primary_data)
+    figS6_obs_cov(primary_data)
     print("[INFO] Visualization complete.")

@@ -6,7 +6,7 @@ into the top-level ``figures/``:
 
     * ``fig4_cost``            -- per-session wall-clock and analytic FLOPs per method,
                                   with the geometric-mean speed-up vs random annotated.
-    * ``figS8_seed_stability`` -- run-to-run spread of the after-flip metric across RNG
+    * ``figS7_seed_stability`` -- run-to-run spread of the after-flip metric across RNG
                                   seeds for the randomized methods (i.e., random, SDP).
 
 Env: ``osld`` (or any env with numpy/matplotlib)
@@ -97,8 +97,8 @@ def fig4_cost(bench, avail):
     ut.save_fig(fig, "fig4_cost")
 
 
-def figS8_seed_stability(seed, avail, rng):
-    """Figure S8: Per-session spread of the after-flip metric across RNG seeds."""
+def figS7_seed_stability(seed, avail, rng):
+    """Figure S7: Per-session spread of the after-flip metric across RNG seeds."""
     # Set parameters
     methods = ["random", "sdp"]  # seed-dependent methods only
     floor = 1e-7                 # makes exact-zero SDP spreads visible on a log axis
@@ -127,7 +127,7 @@ def figS8_seed_stability(seed, avail, rng):
     for ax, tag in zip(axes.ravel(), "abc"):
         ut.panel_tag(ax, tag)
     fig.tight_layout(rect=[0, 0, 1, 0.94])
-    ut.save_fig(fig, "figS8_seed_stability")
+    ut.save_fig(fig, "figS7_seed_stability")
 
 
 if __name__ == "__main__":
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     if stability:
         avail = [ds for ds in ut.ALL_DATASETS if ds in stability]
         print(f"[INFO] Seed stability available: {avail}")
-        figS8_seed_stability(stability, avail, rng)
+        figS7_seed_stability(stability, avail, rng)
     else:
         print("[WARN] No seed_stability.npz found. Skipping S9 (run 10_seed_stability.py).")
 
