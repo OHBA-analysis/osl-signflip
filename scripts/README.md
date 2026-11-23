@@ -94,15 +94,15 @@ osl-signflip/
 │   ├── README.md                       # This file: analyses and paper reproduction
 │   ├── 01_sign_flip.py                 # Apply sign flipping (random/spectral/BP/SDP) to source data
 │   ├── 02_collect_results.py           # Collect after-flip metrics + recover flip decisions
-│   ├── 03_plot_comparison.py           # Fig 1, 2, S1-S3: performance & flip-decision agreement
+│   ├── 03_plot_comparison.py           # Fig 2, 3, S1-S3: performance & flip-decision agreement
 │   ├── 04_static_analysis.py           # Per-method static features (PSD/power/AEC + TDE covariance)
-│   ├── 05_static_comparison.py         # Fig 4, S4-S5: static-feature comparison across methods
+│   ├── 05_static_comparison.py         # Fig 5, S4: static-feature comparison across methods
 │   ├── 06_dynamic_analysis.py          # Train one TDE-HMM run per (dataset, method, run_id)
 │   ├── 07_dynamic_features.py          # Aggregate best HMM run; match states to SDP
-│   ├── 08_dynamic_comparison.py        # Fig 5, S6-S7, Table S3: dynamic-feature comparison
+│   ├── 08_dynamic_comparison.py        # Fig 6, S5-S6, Table S3: dynamic-feature comparison
 │   ├── 09_benchmark_cost.py            # Wall-clock + analytic FLOP cost benchmark
 │   ├── 10_seed_stability.py            # Seed-to-seed variability of the randomized methods
-│   ├── 11_cost_stability_comparison.py # Fig 3, S8: compute cost and seed stability
+│   ├── 11_cost_stability_comparison.py # Fig 4, S7: compute cost and seed stability
 │   └── utils.py                        # Shared plotting, statistics, and I/O helpers
 │
 ├── src/osl_signflip/                   # Standalone sign-flipping package (pip-installable)

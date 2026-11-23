@@ -10,7 +10,7 @@ Reads the per-dataset dynamic features saved by ``07_dynamic_features.py``
                                         / switching rate) across methods.
     * ``figS5_hmm_networks``         -- Cam-CAN SDP HMM networks: per-state PSD, power, and
                                         coherence.
-    * ``tableS1_dynamic_invariance`` -- inter-method similarity (correlation with SDP) of state
+    * ``tableS3_dynamic_invariance`` -- inter-method similarity (correlation with SDP) of state
                                         PSD, power, coherence, and transition probabilities,
                                         written as a Markdown table.
     * ``figS6_obs_cov``              -- Cam-CAN observation-model state covariances per method
@@ -221,7 +221,7 @@ def draw_grouped_bars(ax, feats, stat, ylabel, p_holm=None):
 
 
 # ------------------------------------------
-# Figures (includes Fig. 6, S6, S7, Table 1)
+# Figures (includes Fig. 6, S5, S6, Table S3)
 # ------------------------------------------
 
 def fig6_dynamics(R, rng):
@@ -308,9 +308,9 @@ def figS5_hmm_networks(R):
     ut.save_fig(fig, "figS5_hmm_networks")
 
 
-def tableS1_dynamic_invariance(data):
+def tableS3_dynamic_invariance(data):
     """
-    Table S1: Inter-method similarity of dynamic state-network features (as correlation
+    Table S3: Inter-method similarity of dynamic state-network features (as correlation
     with SDP), written as a markdown file.
 
     Each cell is the Pearson correlation of that method's group-level feature with SDP's
@@ -323,7 +323,7 @@ def tableS1_dynamic_invariance(data):
     header = "| Dataset | Method | " + " | ".join(name for _, name in feats) + " |"
     sep = "|" + "---|" * (2 + len(feats))
     lines = [
-        "# Table S1. Inter-method similarity of dynamic state-network features",
+        "# Table S3. Inter-method similarity of dynamic state-network features",
         "",
         "Pearson correlation of each method's group-level state-network features with SDP's "
         "(states matched to SDP). Higher is more similar (maximum 1).",
@@ -339,7 +339,7 @@ def tableS1_dynamic_invariance(data):
             lines.append(f"| {ds_cell} | {ut.LABELS[m]} | {vals} |")
 
     os.makedirs(ut.FIG_DIR, exist_ok=True)
-    out = os.path.join(ut.FIG_DIR, "tableS1_dynamic_invariance.md")
+    out = os.path.join(ut.FIG_DIR, "tableS3_dynamic_invariance.md")
     with open(out, "w") as fh:
         fh.write("\n".join(lines) + "\n")
     print(f"[INFO] Saved {out}.")
@@ -407,6 +407,6 @@ if __name__ == "__main__":
     # Generate figures
     fig6_dynamics(primary_data, rng)
     figS5_hmm_networks(primary_data)
-    tableS1_dynamic_invariance(data)
+    tableS3_dynamic_invariance(data)
     figS6_obs_cov(primary_data)
     print("[INFO] Visualization complete.")

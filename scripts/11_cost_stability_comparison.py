@@ -64,7 +64,7 @@ def _cost_panel(ax, bench, avail, value_fn, ylabel, annotate_speedup=False):
 
 
 # -----------------------------
-# Figures (includes Fig. 4, S8)
+# Figures (includes Fig. 4, S7)
 # -----------------------------
 
 def fig4_cost(bench, avail):
@@ -158,6 +158,6 @@ if __name__ == "__main__":
         print(f"[INFO] Seed stability available: {avail}")
         figS7_seed_stability(stability, avail, rng)
     else:
-        print("[WARN] No seed_stability.npz found. Skipping S9 (run 10_seed_stability.py).")
+        print("[WARN] No seed_stability.npz found. Skipping S7 (run 10_seed_stability.py).")
 
     print("[INFO] Visualization complete.")
