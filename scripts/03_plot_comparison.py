@@ -21,6 +21,11 @@ Usage:
 import numpy as np
 import utils as ut
 import matplotlib.pyplot as plt  # utils sets the Agg backend on import
+from matplotlib.patches import Patch
+
+# Before-flip reference (identical across methods)
+BEFORE_COLOR = "0.55"
+BEFORE_LABEL = "Before"
 
 # ---------------
 # Reusable panels
@@ -28,8 +33,12 @@ import matplotlib.pyplot as plt  # utils sets the Agg backend on import
 
 def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
     """
-    After-flip metric distribution per method: box + jitter + mean diamond
-    (Fig 2a, S1a, S1d).
+    Before-flip reference + after-flip metric distribution per method:
+    box + jitter + mean diamond (Fig 2a, S1a, S1d).
+
+    The before-flip metric (one value per session, identical across methods) is
+    drawn as a grey box at the left, separated from the methods by a dotted divider.
+    It is a visual reference only and is NOT part of the Friedman test.
 
     If ``friedman`` (a dict from ``utils.friedman_omnibus``) is passed, the omnibus
     result is reported in an inset box on the right: upper corner by default, or
@@ -38,19 +47,26 @@ def draw_distribution(ax, D, midx, rng, friedman=None, friedman_center=False):
     """
     after = D["after"]
     n = after.shape[0]
-    for i, m in enumerate(ut.DISPLAY):
-        x = after[:, midx[m]]
-        bp = ax.boxplot(x, positions=[i], widths=0.6, patch_artist=True,
+    gap = 0.4  # extra x-space between the before box and the methods
+    series = [(BEFORE_LABEL, D["before"], BEFORE_COLOR, 0.0)]
+    series += [(ut.LABELS[m], after[:, midx[m]], ut.COLORS[m], i + 1 + gap)
+               for i, m in enumerate(ut.DISPLAY)]
+    for _, x, c, pos in series:
+        bp = ax.boxplot(x, positions=[pos], widths=0.6, patch_artist=True,
                         showfliers=False, zorder=2,
                         medianprops=dict(color="black", lw=1.2))
-        bp["boxes"][0].set(facecolor=ut.COLORS[m], alpha=0.45, edgecolor="0.3", lw=0.8)
-        ax.scatter(np.full(n, i) + rng.uniform(-0.14, 0.14, n), x,
-                   s=4, color=ut.COLORS[m], alpha=0.45, zorder=3, edgecolors="none")
-        ax.scatter([i], [x.mean()], marker="D", s=20, color="black", zorder=4)
-        ax.text(i + 0.22, x.mean(), f"{x.mean():.3f}", va="center", ha="left", fontsize=6.5)
-    ax.set_xticks(range(len(ut.DISPLAY)))
-    ax.set_xticklabels([ut.LABELS[m] for m in ut.DISPLAY], ha="center")
-    ax.set_ylabel("After-flip covariance correlation")
+        bp["boxes"][0].set(facecolor=c, alpha=0.45, edgecolor="0.3", lw=0.8)
+        ax.scatter(np.full(n, pos) + rng.uniform(-0.14, 0.14, n), x,
+                   s=4, color=c, alpha=0.45, zorder=3, edgecolors="none")
+        ax.scatter([pos], [x.mean()], marker="D", s=20, color="black", zorder=4)
+        # Mean value above the upper whisker cap (boxes are too close for a side label)
+        ax.annotate(f"{x.mean():.3f}", (pos, bp["caps"][1].get_ydata()[0]),
+                    xytext=(0, 2), textcoords="offset points",
+                    va="bottom", ha="center", fontsize=6.5)
+    ax.axvline(0.5 + gap / 2, color="0.6", lw=0.8, ls=":", zorder=1)
+    ax.set_xticks([s[3] for s in series])
+    ax.set_xticklabels([s[0] for s in series], ha="center")
+    ax.set_ylabel("Covariance correlation")
     ax.set_title(f"Sign-Flipping Performance (N = {n})")
     ax.grid(axis="y", alpha=0.25)
 
@@ -130,24 +146,32 @@ def draw_paired_comparison(ax, D, midx, rng):
 
 
 def draw_cross_dataset_sdp(ax, data, rng):
-    """SDP per-session metric as one box per dataset (Fig 2d)."""
+    """Before-flip vs SDP per-session metric, one box pair per dataset (Fig 2d)."""
     n_sessions = []
+    off, w = 0.21, 0.36  # half-spacing and width of the paired boxes
     for i, ds in enumerate(ut.ALL_DATASETS):
         D, midx = data[ds]
-        x = D["after"][:, midx["sdp"]]
-        n_sessions.append(x.size)
-        bp = ax.boxplot(x, positions=[i], widths=0.6, patch_artist=True,
-                        showfliers=False, zorder=2,
-                        medianprops=dict(color="black", lw=1.2))
-        bp["boxes"][0].set(facecolor=ut.COLORS["sdp"], alpha=0.45, edgecolor="0.3", lw=0.8)
-        ax.scatter(np.full(n_sessions[-1], i) + rng.uniform(-0.14, 0.14, n_sessions[-1]), x,
-                   s=4, color=ut.COLORS["sdp"], alpha=0.4, zorder=3, edgecolors="none")
+        pairs = [(D["before"], BEFORE_COLOR, i - off),
+                 (D["after"][:, midx["sdp"]], ut.COLORS["sdp"], i + off)]
+        n_sessions.append(D["before"].size)
+        for x, c, pos in pairs:
+            bp = ax.boxplot(x, positions=[pos], widths=w, patch_artist=True,
+                            showfliers=False, zorder=2,
+                            medianprops=dict(color="black", lw=1.2))
+            bp["boxes"][0].set(facecolor=c, alpha=0.45, edgecolor="0.3", lw=0.8)
+            ax.scatter(np.full(x.size, pos) + rng.uniform(-0.08, 0.08, x.size), x,
+                       s=4, color=c, alpha=0.4, zorder=3, edgecolors="none")
     ax.set_xticks(range(len(ut.ALL_DATASETS)))
     ax.set_xticklabels(
         [ut.DATASET_LABELS[d] + f"\n(N = {n})" for d, n in zip(ut.ALL_DATASETS, n_sessions)],
         ha="center",
     )
-    ax.set_ylabel("After-flip covariance correlation")
+    ax.legend(handles=[Patch(facecolor=BEFORE_COLOR, alpha=0.45, edgecolor="0.3",
+                             label=BEFORE_LABEL),
+                       Patch(facecolor=ut.COLORS["sdp"], alpha=0.45, edgecolor="0.3",
+                             label=ut.LABELS["sdp"])],
+              frameon=False, loc="upper left")
+    ax.set_ylabel("Covariance correlation")
     ax.set_title("SDP Performance Across Datasets")
     ax.grid(axis="y", alpha=0.25)
 
@@ -279,7 +303,7 @@ def figS1_performance(data, rng):
                           friedman_center=(ds == "wakeman_henson"))
         draw_per_session_sorted(axes[r, 1], D, midx)
         draw_paired_comparison(axes[r, 2], D, midx, rng)
-        axes[r, 0].set_ylabel(f"{ut.DATASET_LABELS[ds]}\nAfter-flip correlation")
+        axes[r, 0].set_ylabel(f"{ut.DATASET_LABELS[ds]}\nCovariance correlation")
 
     # Axis settings
     for ax, tag in zip(axes.ravel(), "abcdef"):
