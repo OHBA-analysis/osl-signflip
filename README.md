@@ -1,7 +1,7 @@
 # OHBA Software Library: Sign-Flipping Toolbox
 
 [![Tests](https://github.com/OHBA-analysis/osl-signflip/actions/workflows/tests.yml/badge.svg)](https://github.com/OHBA-analysis/osl-signflip/actions/workflows/tests.yml)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/OHBA-analysis/osl-signflip/blob/main/pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://github.com/OHBA-analysis/osl-signflip/blob/main/pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/OHBA-analysis/osl-signflip/blob/main/LICENSE)
 
 **Fast, reproducible sign-flipping for source-reconstructed M/EEG data.**
@@ -41,7 +41,7 @@ times faster** than random search while giving equally good or better solutions.
 
 ## 📌 Installation
 
-`osl-signflip` requires Python 3.10 or later (tested on Python 3.10–3.13).
+`osl-signflip` requires Python 3.10 or later (tested on Python 3.10–3.14).
 
 ```bash
 pip install osl-signflip            # core (NumPy, tqdm, and joblib only)
